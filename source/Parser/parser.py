@@ -1,29 +1,13 @@
+"""Arquivo responsável pela validação e verificação de
+um comando SQL, bem como as cláusulas utilizadas, a sua
+estrutura e, também, os parâmetros."""
+
 import re
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Callable
 
-# TODO: Botar as exceções, e os métodos também, em um arquivo separado.
-
-class InvalidSQLCommand(Exception):
-    """Exceção lançada quando um comando SQL é classificado
-    como inválido.
-    """
-
-def raise_invalid_sql_command_exception(sql_command: str) -> None:
-    """Lança uma exceção quando um comando SQL fornecido é
-    classificado como inválido.
-
-    Args:
-        sql_command (str): O comando SQL usado para verificação
-        e validação.
-
-    Raises:
-        InvalidSQLCommand: Exceção customizada para alertar
-        que um comando SQL foi classificado como inválido.
-    """
-    raise InvalidSQLCommand(
-        f"[{sql_command}]\nO comando SQL fornecido é inválido."
-    )
+# pylint: disable=import-error
+from Exceptions.missing_semicolon import raise_missing_semicolon_exception
 
 class Parser:
     """Classe responsável pela verificação e validação de um comando SQL.
@@ -40,8 +24,10 @@ class Parser:
     # Os parâmetros associados as cláusulas SQL, de um comando qualquer.
     __sql_params: Dict[Tuple[str, int], List[str]]
     # FIXME: Posso assumir que todo comando MySQL DEVE terminar com ; ?
-    # Expressão regular para extração de palavras reservadas do MySQL.
+    # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
     __sql_command_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
+    # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
+    __sql_select_params_pattern: str = r'\*|^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$|^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$'
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -56,6 +42,7 @@ class Parser:
         self.__adapt_termination()
         self.sql_tokens = self.__tokenize()
         self.sql_params = self.__extract_params()
+        self.__validate_params()
 
     @property
     def sql_command(self) -> str:
@@ -163,7 +150,7 @@ class Parser:
         if self.sql_command[-1] == ";":
             self.sql_command = self.sql_command.replace(";", " ;", 1)
         else:
-            raise_invalid_sql_command_exception(self.sql_command)
+            raise_missing_semicolon_exception(self.sql_command)
 
     def __tokenize(self) -> List[Tuple[str, int]]:
         """Itera sobre um comando SQL (sql_command), extraindo
@@ -203,12 +190,55 @@ class Parser:
             for i in range(1, len(self.sql_tokens))
         }
 
+    def __validate_params(self) -> None:
+        """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
+        """
 
-# TODO: Inserir mais casos de teste. (Botar em um Loop)
-Parser(
-    "SELECT * " +
-    "FROM tabela1 " +
-    "JOIN tabela2 ON tabela1.id = tabela2.id " +
-    "JOIN tabela3 ON tabela2.id = tabela3.id " +
-    "JOIN tabela4 ON tabela3.id = tabela4.id;"
-)
+        def is_select_valid(params: List[str]) -> bool:
+            """Verifica se os parâmetros da cláusula SELECT são válidos.
+
+            Junta os parâmetros coletados do comando SQL, da cláusula SELECT,
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            todos os parâmetros.
+
+            Args:
+                params (List[str]): Os parâmetros da cláusula SELECT.
+
+            Returns:
+                bool: Se os parâmetros são válidos ou não.
+            """
+            params_str: str = ' '.join(str(p) for p in params)
+            return re.match(self.__sql_select_params_pattern, params_str) is not None
+
+        def is_from_valid(params: List[str]) -> bool:
+            # TODO: Implementar isso aqui.
+            # TODO: Verificar se as colunas do FROM ta de acordo com os alias do SELECT.
+            pass
+
+        def is_join_valid(params: List[str]) -> bool:
+            # TODO: Implementar isso aqui.
+            pass
+
+        def is_on_valid(params: List[str]) -> bool:
+            # TODO: Implementar isso aqui.
+            pass
+
+        def is_where_valid(params: List[str]) -> bool:
+            # TODO: Implementar isso aqui.
+            pass
+
+        # Responsável pela chamada de uma função específica para uma cláusula SQL específica.
+        validator: Dict[str, Callable[[List[str]], bool]] = {
+            "SELECT": is_select_valid,
+            "FROM": is_from_valid,
+            "JOIN": is_join_valid,
+            "ON": is_on_valid,
+            "WHERE": is_where_valid
+        }
+
+        # TODO: Separar os parâmetros válidos em uma lista ou sei lá, tem que ver se o nome das tabelas e alias tão de acordo.
+        # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
+        params_are_valid: bool = True
+        for key, value in self.sql_params.items():
+            params_are_valid = all([validator[key[0]](value), params_are_valid])
+        return params_are_valid
