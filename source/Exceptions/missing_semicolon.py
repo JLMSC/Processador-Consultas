@@ -1,8 +1,7 @@
-"""Arquivo responsável pela criação de exceções customizadas,
-bem como métodos responsáveis pelo lançamento de cada uma.
-"""
+"""Arquivo responsável pela exceção relacionada a
+falta de ';' no final de comandos SQL."""
 
-class MissingSemiColonAtEnd(Exception):
+class MissingSemicolonException(Exception):
     """Exceção lançada quando não há a presença
     de um ';' no final de um comando SQL.
     """
@@ -19,6 +18,7 @@ def raise_missing_semicolon_exception(sql_command: str) -> None:
         MissingSemiColonAtEnd: Exceção customizada para
         alertar a falta de ';' no final de um comando SQL.
     """
-    raise MissingSemiColonAtEnd(
-        f"[{sql_command}]\nO comando SQL fornecido não possui ';' no final."
+    raise MissingSemicolonException(
+        sql_command +
+        "\nEstá faltando um ';' no final do comando SQL fornecido."
     )
