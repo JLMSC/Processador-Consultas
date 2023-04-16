@@ -23,4 +23,11 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `|` - Operador *OR*.
 * `^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$` - Captura parâmetros únicos ou separados por uma vírgula, em que esses parâmetros devem começar com uma letra, sendo minúsucula ou maiúsucla e pode ter qualquer quantia de letras, dígitos e *_ (underline)*.
 * `^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$` - Captura parâmetros únicos ou separados por uma vírgula, no formato "nomeTabela.nomeColuna", em que esses parâmetros devem começar com uma letra, sendo minúscula ou maiúscula e pode ter qualquer quantia de letras, dígitos e *_ (underline)*, ai tem o *.* e o mesmo é aplicado pro texto além do ponto.
-> Entradas como `123foo.bar`, `usuario.nome, usuario.idade` e dentre outros **NÃO** serão aceitos.
+> Entradas como `123foo.bar`, `usuario.nome, usuario.idade,` e dentre outros **NÃO** serão aceitos.
+
+`^select\sfrom\s(?:join\son\s|where\s)*;$'`
+* `^select\s` - Deve começar com um *select* seguido de qualquer quantia de espaços.
+* `from\s` - Indica que a próxima palavra deve ser um *from* seguido de qualquer quantia de espaços.
+* `(?:join\son\s|where\s)*` - Indica que a(s) próxima(s) palavra(s) devem ser um qualquer quantia de *join* *on*, separados por qualquer quantia de espaços OU qualquer quantia de *where*, também separados por qualquer quantia de espaços.
+* `;$` - O texto deve terminar com um *;*.
+> No geral, esse RegEx é usado para verificar a estrutura do comando SQL, ou seja, o posicionamento das cláusulas SQL.
