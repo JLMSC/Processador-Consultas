@@ -7,8 +7,11 @@ import re
 from typing import List, Tuple, Dict, Callable
 
 # pylint: disable=import-error
+from Exceptions.missing_command import raise_missing_command_exception
+from Exceptions.invalid_select_params import raise_invalid_select_params
 from Exceptions.missing_semicolon import raise_missing_semicolon_exception
 from Exceptions.incorrect_order import raise_incorrect_clause_order_exception
+from Exceptions.missing_select_params import raise_missing_select_params_exception
 
 class Parser:
     """Classe responsável pela verificação e validação de um comando SQL.
@@ -164,10 +167,13 @@ class Parser:
         Remove a junção do operador ';' de algum elemento textual
         de um comando SQL qualquer.
         """
-        if self.sql_command[-1] == ";":
-            self.sql_command = self.sql_command.replace(";", " ;", 1)
+        if self.sql_command:
+            if self.sql_command[-1] == ";":
+                self.sql_command = self.sql_command.replace(";", " ;", 1)
+            else:
+                raise_missing_semicolon_exception(self.sql_command)
         else:
-            raise_missing_semicolon_exception(self.sql_command)
+            raise_missing_command_exception()
 
     def __tokenize(self) -> List[Tuple[str, int]]:
         """Itera sobre um comando SQL (sql_command), extraindo
@@ -233,23 +239,31 @@ class Parser:
                 bool: Se os parâmetros são válidos ou não.
             """
             params_str: str = ' '.join(str(p) for p in params)
-            return re.match(self.__sql_select_params_pattern, params_str) is not None
+            if params_str:
+                if re.match(self.__sql_select_params_pattern, params_str) is not None:
+                    return True
+                raise_invalid_select_params(self.sql_command)
+            raise_missing_select_params_exception(self.sql_command)
 
         def is_from_valid(params: List[str]) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Verificar se as colunas do FROM ta de acordo com os alias do SELECT.
+            # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
         def is_join_valid(params: List[str]) -> bool:
             # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
         def is_on_valid(params: List[str]) -> bool:
             # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
         def is_where_valid(params: List[str]) -> bool:
             # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
         # Responsável pela chamada de uma função específica para uma cláusula SQL específica.
@@ -261,7 +275,7 @@ class Parser:
             "WHERE": is_where_valid
         }
 
-        # TODO: Separar os parâmetros válidos em uma lista ou sei lá, tem que ver se o nome das tabelas e alias tão de acordo.
+        # TODO: Separar os parâmetros válidos em uma lista ou sei lá, tem que ver se o nome das tabelas e 'alias' tão de acordo.
         # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
         params_are_valid: bool = True
         for key, value in self.sql_params.items():
