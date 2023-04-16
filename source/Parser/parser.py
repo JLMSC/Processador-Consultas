@@ -8,6 +8,7 @@ from typing import List, Tuple, Dict, Callable
 
 # pylint: disable=import-error
 from Exceptions.missing_semicolon import raise_missing_semicolon_exception
+from Exceptions.incorrect_order import raise_incorrect_clause_order_exception
 
 class Parser:
     """Classe responsável pela verificação e validação de um comando SQL.
@@ -25,7 +26,9 @@ class Parser:
     __sql_params: Dict[Tuple[str, int], List[str]]
     # FIXME: Posso assumir que todo comando MySQL DEVE terminar com ; ?
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
-    __sql_command_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
+    __sql_token_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
+    # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
+    __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s|where\s)*;$'
     # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
     __sql_select_params_pattern: str = r'\*|^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$|^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$'
 
@@ -41,6 +44,7 @@ class Parser:
         self.sql_command = sql_command
         self.__adapt_termination()
         self.sql_tokens = self.__tokenize()
+        self.__validate_tokens()
         self.sql_params = self.__extract_params()
         self.__validate_params()
 
@@ -129,12 +133,25 @@ class Parser:
         self.__sql_params = new_sql_params
 
     @property
-    def sql_command_pattern(self) -> str:
-        """Extrai o conteúdo da variável privada sql_command_pattern
+    def sql_token_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_token_pattern.
 
         Acessa a variável privada da classe, responsável pelo regex
         da seleção e captura de comandos SQL, bem como o SELECT, FROM,
         JOIN, ON e WHERE, retornando seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_token_pattern
+
+    @property
+    def sql_command_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_command_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação e validação da estrutura e posicionamento das
+        cláusulas SQL, retornando seu conteúdo.
 
         Returns:
             str: O conteúdo, regex, da variável privada da classe.
@@ -158,7 +175,7 @@ class Parser:
 
         Itera sobre cada elemento textual do comando SQL, armazenado
         na variável privada sql_command, armazenando somente os textos
-        que estão de acordo com o regex sql_command_pattern, juntamente
+        que estão de acordo com o regex sql_token_pattern, juntamente
         com a sua posição no comando.
 
         Returns:
@@ -168,7 +185,7 @@ class Parser:
         return [
             (token, i)
             for i, token in enumerate(self.sql_command.strip().split())
-            if re.match(self.sql_command_pattern, token, re.IGNORECASE)
+            if re.match(self.sql_token_pattern, token, re.IGNORECASE)
         ]
 
     def __extract_params(self) -> Dict[Tuple[str, int], List[str]]:
@@ -189,6 +206,14 @@ class Parser:
             (self.sql_tokens[i-1]): list(commands[self.sql_tokens[i-1][1]+1:self.sql_tokens[i][1]])
             for i in range(1, len(self.sql_tokens))
         }
+
+    def __validate_tokens(self) -> None:
+        """Verifica a validez do posicionamento das cláusulas SQL do comando fornecido.
+        """
+
+        tokens: str = ' '.join(str(token) for token, _ in self.sql_tokens)
+        if re.match(self.sql_command_pattern, tokens, re.IGNORECASE) is None:
+            raise_incorrect_clause_order_exception(self.sql_command)
 
     def __validate_params(self) -> None:
         """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
