@@ -26,7 +26,7 @@ class Parser:
     # Os tokens, cláusulas SQL, de um comando qualquer.
     __sql_tokens: List[Tuple[str, int]]
     # Os parâmetros associados as cláusulas SQL, de um comando qualquer.
-    __sql_params: Dict[Tuple[str, int], List[str]]
+    __sql_params: List[str]
     # FIXME: Posso assumir que todo comando MySQL DEVE terminar com ; ?
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
     __sql_token_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
@@ -106,7 +106,7 @@ class Parser:
         self.__sql_tokens = new_sql_tokens
 
     @property
-    def sql_params(self) -> Dict[Tuple[str, int], List[str]]:
+    def sql_params(self) -> List[str]:
         """Extrai o conteúdo da variável privada sql_params.
 
         Acessa a variável privada da classe, responsável pelo
@@ -114,14 +114,13 @@ class Parser:
         seu conteúdo.
 
         Returns:
-            Dict[Tuple[str, int], List[str]]: Um dicionário,
-            contendo as cláusulas SQL, suas posições e os 
-            parâmetros associados as claúsulas SQL.
+            List[str]: Uma lista, contendo os parâmetros 
+            associados as claúsulas SQL.
         """
         return self.__sql_params
 
     @sql_params.setter
-    def sql_params(self, new_sql_params: Dict[Tuple[str, int], List[str]]) -> None:
+    def sql_params(self, new_sql_params: List[str]) -> None:
         """Altera o conteúdo da variável privada sql_params.
 
         Acessa a variável privada da classe, responsável pelo
@@ -129,9 +128,8 @@ class Parser:
         um novo valor para a variável.
 
         Args:
-            new_sql_params (Dict[Tuple[str, int], List[str]]): Um
-            dicionário, contendo as cláusulas SQL, suas posições e
-            os parâmetros associados as cláusulas SQL.
+            new_sql_params (List[str]): Uma lista contendo os
+            parâmetros associados as cláusulas SQL.
         """
         self.__sql_params = new_sql_params
 
@@ -160,6 +158,19 @@ class Parser:
             str: O conteúdo, regex, da variável privada da classe.
         """
         return self.__sql_command_pattern
+
+    @property
+    def sql_select_params_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_select_params_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação e validação dos parâmetros da cláusula SQL,
+        retornando seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_select_params_pattern
 
     def __adapt_termination(self) -> None:
         """Altera a terminação de um comando SQL.
@@ -194,7 +205,7 @@ class Parser:
             if re.match(self.sql_token_pattern, token, re.IGNORECASE)
         ]
 
-    def __extract_params(self) -> Dict[Tuple[str, int], List[str]]:
+    def __extract_params(self) -> List[str]:
         """Extrai os parâmetros relacionados as cláusulas SQL do
         comando fornecido ao Parser.
 
@@ -203,20 +214,18 @@ class Parser:
         qualquer elemento textual que esteja entre os tokens.
 
         Returns:
-            Dict[Tuple[str, int], List[str]]: Um dicionário,
-            contendo as cláusulas SQL, suas posições e os 
-            parâmetros associados as claúsulas SQL.
+            List[str]: Uma lista, contendo os parâmetros
+            associados as claúsulas SQL.
         """
         commands: List[str] = self.sql_command.strip().split()
-        return {
-            (self.sql_tokens[i-1]): list(commands[self.sql_tokens[i-1][1]+1:self.sql_tokens[i][1]])
+        return [
+            commands[self.sql_tokens[i-1][1]+1:self.sql_tokens[i][1]]
             for i in range(1, len(self.sql_tokens))
-        }
+        ]
 
     def __validate_tokens(self) -> None:
         """Verifica a validez do posicionamento das cláusulas SQL do comando fornecido.
         """
-
         tokens: str = ' '.join(str(token) for token, _ in self.sql_tokens)
         if re.match(self.sql_command_pattern, tokens, re.IGNORECASE) is None:
             raise_incorrect_clause_order_exception(self.sql_command)
@@ -225,7 +234,7 @@ class Parser:
         """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
         """
 
-        def is_select_valid(params: List[str]) -> bool:
+        def is_select_valid(params: str) -> bool:
             """Verifica se os parâmetros da cláusula SELECT são válidos.
 
             Junta os parâmetros coletados do comando SQL, da cláusula SELECT,
@@ -233,14 +242,13 @@ class Parser:
             todos os parâmetros.
 
             Args:
-                params (List[str]): Os parâmetros da cláusula SELECT.
+                params (str): Os parâmetros da cláusula SELECT.
 
             Returns:
                 bool: Se os parâmetros são válidos ou não.
             """
-            params_str: str = ' '.join(str(p) for p in params)
-            if params_str:
-                if re.match(self.__sql_select_params_pattern, params_str) is not None:
+            if params:
+                if re.match(self.sql_select_params_pattern, params) is not None:
                     return True
                 raise_invalid_select_params(self.sql_command)
             raise_missing_select_params_exception(self.sql_command)
@@ -275,9 +283,11 @@ class Parser:
             "WHERE": is_where_valid
         }
 
-        # TODO: Separar os parâmetros válidos em uma lista ou sei lá, tem que ver se o nome das tabelas e 'alias' tão de acordo.
         # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
         params_are_valid: bool = True
-        for key, value in self.sql_params.items():
-            params_are_valid = all([validator[key[0]](value), params_are_valid])
+        for i, params in enumerate(self.sql_params):
+            # Junta os parâmetros de uma cláusula em uma string única.
+            params_str: str = ' '.join(str(p) for p in params)
+            # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
+            params_are_valid = all([validator[self.sql_tokens[i][0]](params_str), params_are_valid])
         return params_are_valid
