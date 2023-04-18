@@ -34,6 +34,9 @@ class Parser:
     __sql_select_params_pattern: str = r'\*|^([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*$'
     # Expressão regular para validação dos parâmetros da cláusula FROM do MySQL.
     __sql_from_params_pattern: str = r'^[a-zA-Z][a-zA-Z0-9_]*(,[ ]*[a-zA-Z][a-zA-Z0-9_]*)*$'
+    # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
+    __sql_join_params_pattern: str = r'^[a-zA-Z][a-zA-Z0-9_]*$'
+    # TODO: Regex pro ON
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -239,6 +242,19 @@ class Parser:
         """
         return self.__sql_from_params_pattern
 
+    @property
+    def sql_join_params_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_join_params_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação e validação dos parâmetros da cláusula JOIN,
+        retornando o seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_join_params_pattern
+
     def __adapt_termination(self) -> None:
         """Altera a terminação de um comando SQL.
 
@@ -335,7 +351,7 @@ class Parser:
         def is_from_valid(params: str) -> bool:
             """Verifica se os parâmetros da cláusula FROM são válidos.
 
-            Junta os parâmetros coletados do comando SQL, da cláusula SELECT,
+            Junta os parâmetros coletados do comando SQL, da cláusula FROM,
             e aplica um regex no mesmo, verificando se existe algum 'match' com
             todos os parâmetros.
 
@@ -358,9 +374,29 @@ class Parser:
             Exceptions.raise_missing_from_params_exception(self.sql_command)
 
         def is_join_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            """Verifica se os parâmetros da cláusula JOIN são válidos.
+
+            Junta os parâmetros coletados do comando SQL, da cláusula JOIN,
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            todos os parâmetros.
+
+            Args:
+                params (str): Os parâmetros da cláusula JOIN.
+
+            Returns:
+                bool: Se os parâmetros são válidos ou não.
+            """
+            if params:
+                if re.match(self.sql_join_params_pattern, params) is not None:
+                    # Captura o nome das tabelas e armazena-as.
+                    param_pattern: str = r'(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        self.sql_tables["JOIN"].add(match)
+                    # Indica que os parâmetros do FROM são válidos.
+                    return True
+                Exceptions.raise_invalid_join_params_exception(self.sql_command)
+            Exceptions.raise_missing_join_params_exception(self.sql_command)
 
         def is_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
