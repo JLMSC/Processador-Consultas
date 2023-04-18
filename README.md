@@ -42,3 +42,10 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `(,[ ]*[a-zA-Z][a-zA-Z0-9_]*)*` - Captura textos separados por vírgulas com 0 ou mais espaços em brancos entre a vírgula e o texto, no qual o texto segue a mesma lógica do regex anterior.
 * `$` - Final da linha.
 > Pode-se dizer que esse regex é uma parte do regex dos parâmetros do SELECT, ele só pega entradas no formato "nomeTabela" e/ou "nomeTabela1, nomeTabela2". 
+
+#### **Validação dos parâmetros do JOIN**
+`^[a-zA-Z][a-zA-Z0-9_]*$`
+* `^[a-zA-Z]` - Captura uma letra minúscula ou maiúscula no começo de um texto.
+* `[a-zA-Z0-9_]*` - Captura um caractere alfanumérico 0 ou N vezes ao longo do texto.
+* `$` - Final da linha.
+> Basicamente pega um texto qualquer que deve começar com uma letra, é isso.
