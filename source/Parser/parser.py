@@ -3,15 +3,10 @@ um comando SQL, bem como as cláusulas utilizadas, a sua
 estrutura e, também, os parâmetros."""
 
 import re
-
 from typing import List, Tuple, Dict, Callable
 
 # pylint: disable=import-error
-from Exceptions.missing_command import raise_missing_command_exception
-from Exceptions.invalid_select_params import raise_invalid_select_params
-from Exceptions.missing_semicolon import raise_missing_semicolon_exception
-from Exceptions.incorrect_order import raise_incorrect_clause_order_exception
-from Exceptions.missing_select_params import raise_missing_select_params_exception
+import exceptions
 
 class Parser:
     """Classe responsável pela verificação e validação de um comando SQL.
@@ -34,6 +29,8 @@ class Parser:
     __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s|where\s)*;$'
     # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
     __sql_select_params_pattern: str = r'\*|^([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*$'
+    # Expressão regular para validação dos parâmetros da cláusula FROM do MySQL.
+    __sql_from_params_pattern: str = r'^[a-zA-Z][a-zA-Z0-9_]*(,[ ]*[a-zA-Z][a-zA-Z0-9_]*)*$'
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -164,13 +161,26 @@ class Parser:
         """Extrai o conteúdo da variável privada sql_select_params_pattern.
 
         Acessa a variável privada da classe, responsável pelo regex
-        da verificação e validação dos parâmetros da cláusula SQL,
+        da verificação e validação dos parâmetros da cláusula SELECT,
         retornando seu conteúdo.
 
         Returns:
             str: O conteúdo, regex, da variável privada da classe.
         """
         return self.__sql_select_params_pattern
+
+    @property
+    def sql_from_params_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_from_params_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação e validação dos parâmetros da cláusula FROM,
+        retornando o seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_from_params_pattern
 
     def __adapt_termination(self) -> None:
         """Altera a terminação de um comando SQL.
@@ -182,9 +192,9 @@ class Parser:
             if self.sql_command[-1] == ";":
                 self.sql_command = self.sql_command.replace(";", " ;", 1)
             else:
-                raise_missing_semicolon_exception(self.sql_command)
+                exceptions.raise_missing_semicolon_exception(self.sql_command)
         else:
-            raise_missing_command_exception()
+            exceptions.raise_missing_command_exception()
 
     def __tokenize(self) -> List[Tuple[str, int]]:
         """Itera sobre um comando SQL (sql_command), extraindo
@@ -228,7 +238,7 @@ class Parser:
         """
         tokens: str = ' '.join(str(token) for token, _ in self.sql_tokens)
         if re.match(self.sql_command_pattern, tokens, re.IGNORECASE) is None:
-            raise_incorrect_clause_order_exception(self.sql_command)
+            exceptions.raise_incorrect_clause_order_exception(self.sql_command)
 
     def __validate_params(self) -> None:
         """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
@@ -251,8 +261,8 @@ class Parser:
                 if re.match(self.sql_select_params_pattern, params) is not None:
                     # FIXME: Posso aproveitar o regex "sql_select_params_pattern" e ja pegar as colunas e/ou tabelas.
                     return True
-                raise_invalid_select_params(self.sql_command)
-            raise_missing_select_params_exception(self.sql_command)
+                exceptions.raise_invalid_select_params(self.sql_command)
+            exceptions.raise_missing_select_params_exception(self.sql_command)
 
         def is_from_valid(params: List[str]) -> bool:
             # TODO: Implementar isso aqui.
