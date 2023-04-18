@@ -2,6 +2,7 @@
 customizadas e, também, a utilização das exceções."""
 
 # pylint: disable=import-error
+from .invalid_from_params import raise_invalid_from_params
 from .missing_command import raise_missing_command_exception
 from .invalid_select_params import raise_invalid_select_params
 from .missing_semicolon import raise_missing_semicolon_exception
@@ -11,6 +12,7 @@ from .missing_select_params import raise_missing_select_params_exception
 
 # Indica o que, neste pacote, está disponível para uso.
 __all__ = [
+    'raise_invalid_from_params',
     'raise_invalid_select_params',
     'raise_missing_command_exception',
     'raise_missing_semicolon_exception',
