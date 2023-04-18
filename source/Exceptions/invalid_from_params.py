@@ -6,7 +6,7 @@ class InvalidFromParametersException(Exception):
     na cláusula FROM.
     """
 
-def raise_invalid_from_params(sql_command: str) -> None:
+def raise_invalid_from_params_exception(sql_command: str) -> None:
     """Lança uma exceção quando há parâmetros incorretos
     na cláusula FROM.
 

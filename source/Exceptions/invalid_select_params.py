@@ -6,7 +6,7 @@ class InvalidSelectParametersException(Exception):
     na cláusula SELECT.
     """
 
-def raise_invalid_select_params(sql_command: str) -> None:
+def raise_invalid_select_params_exception(sql_command: str) -> None:
     """Lança uma exceção quando há parâmetros incorretos
     na cláusula SELECT.
 
