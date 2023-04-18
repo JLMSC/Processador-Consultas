@@ -3,10 +3,10 @@ um comando SQL, bem como as cláusulas utilizadas, a sua
 estrutura e, também, os parâmetros."""
 
 import re
-from typing import List, Tuple, Dict, Callable
+from typing import List, Tuple, Dict, Callable, Set
 
 # pylint: disable=import-error
-import exceptions
+import Exceptions
 
 class Parser:
     """Classe responsável pela verificação e validação de um comando SQL.
@@ -22,7 +22,10 @@ class Parser:
     __sql_tokens: List[Tuple[str, int]]
     # Os parâmetros associados as cláusulas SQL, de um comando qualquer.
     __sql_params: List[str]
-    # FIXME: Posso assumir que todo comando MySQL DEVE terminar com ; ?
+    # As tabelas usadas no comando SQL.
+    __sql_tables: Set[str]
+    # As colunas usadas no comando SQL.
+    __sql_columns: Set[str]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
     __sql_token_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
@@ -46,6 +49,8 @@ class Parser:
         self.sql_tokens = self.__tokenize()
         self.__validate_tokens()
         self.sql_params = self.__extract_params()
+        self.__sql_tables = set()
+        self.__sql_columns = set()
         self.__validate_params()
 
     @property
@@ -131,6 +136,58 @@ class Parser:
         self.__sql_params = new_sql_params
 
     @property
+    def sql_tables(self) -> Set[str]:
+        """Extrai o conteúdo da variável privada sql_tables.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento das tabelas utilizadas no comando SQL.
+
+        Returns:
+            Set[str]: O conteúdo da variável privada da classe,
+            ou seja, o nome das tabelas.
+        """
+        return self.__sql_tables
+
+    @sql_tables.setter
+    def sql_tables(self, new_sql_tables: Set[str]) -> None:
+        """Altera o conteúdo da variável privada sql_tables.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento das tabelas de um comando SQL.
+
+        Args:
+            new_sql_tables (Set[str]): As tabelas utilizadas
+            no comando SQL.
+        """
+        self.sql_tables = new_sql_tables
+
+    @property
+    def sql_columns(self) -> Set[str]:
+        """Extrai o conteúdo da variável privada sql_columns.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento das colunas utilizadas no comando SQL.
+
+        Returns:
+            Set[str]: O conteúdo da variável privada da classe,
+            ou seja, o nome das colunas.
+        """
+        return self.__sql_columns
+
+    @sql_columns.setter
+    def sql_columns(self, new_sql_columns: Set[str]) -> None:
+        """Altera o conteúdo da variável privada sql_columns.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento das colunas de um comando SQL.
+
+        Args:
+            new_sql_columns (Set[str]): As colunas
+            utilizadas no comando SQL.
+        """
+        self.sql_columns = new_sql_columns
+
+    @property
     def sql_token_pattern(self) -> str:
         """Extrai o conteúdo da variável privada sql_token_pattern.
 
@@ -192,9 +249,9 @@ class Parser:
             if self.sql_command[-1] == ";":
                 self.sql_command = self.sql_command.replace(";", " ;", 1)
             else:
-                exceptions.raise_missing_semicolon_exception(self.sql_command)
+                Exceptions.raise_missing_semicolon_exception(self.sql_command)
         else:
-            exceptions.raise_missing_command_exception()
+            Exceptions.raise_missing_command_exception()
 
     def __tokenize(self) -> List[Tuple[str, int]]:
         """Itera sobre um comando SQL (sql_command), extraindo
@@ -238,7 +295,7 @@ class Parser:
         """
         tokens: str = ' '.join(str(token) for token, _ in self.sql_tokens)
         if re.match(self.sql_command_pattern, tokens, re.IGNORECASE) is None:
-            exceptions.raise_incorrect_clause_order_exception(self.sql_command)
+            Exceptions.raise_incorrect_clause_order_exception(self.sql_command)
 
     def __validate_params(self) -> None:
         """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
@@ -259,34 +316,64 @@ class Parser:
             """
             if params:
                 if re.match(self.sql_select_params_pattern, params) is not None:
-                    # FIXME: Posso aproveitar o regex "sql_select_params_pattern" e ja pegar as colunas e/ou tabelas.
+                    # Separa o nome das tabelas e o nome das colunas e armazena-os.
+                    # O "*" é ignorado pelo regex!
+                    param_pattern: str = r'(\w+\.\w+)|(\w+|\*)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        if match[0]:
+                            (table_name, column_name) = match[0].split(".")
+                            self.sql_tables.add(table_name)
+                            self.sql_columns.add(column_name)
+                        else:
+                            self.sql_columns.add(match[1])
+                    # Indica que os parâmetros do SELECT são válidos.
                     return True
-                exceptions.raise_invalid_select_params(self.sql_command)
-            exceptions.raise_missing_select_params_exception(self.sql_command)
+                Exceptions.raise_invalid_select_params(self.sql_command)
+            Exceptions.raise_missing_select_params_exception(self.sql_command)
 
-        def is_from_valid(params: List[str]) -> bool:
+        def is_from_valid(params: str) -> bool:
+            """Verifica se os parâmetros da cláusula FROM são válidos.
+
+            Junta os parâmetros coletados do comando SQL, da cláusula SELECT,
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            todos os parâmetros.
+
+            Args:
+                params (str): Os parâmetros da cláusula FROM.
+
+            Returns:
+                bool: Se os parâmetros são válidos ou não.
+            """
+            if params:
+                if re.match(self.sql_from_params_pattern, params) is not None:
+                    # Captura o nome das tabelas e armazena-as.
+                    param_pattern: str = r'(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        self.sql_tables.add(match)
+                    # Indica que os parâmetros do FROM são válidos.
+                    return True
+                Exceptions.raise_invalid_from_params(self.sql_command)
+            Exceptions.raise_missing_from_params_exception(self.sql_command)
+
+        def is_join_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
-            # TODO: Verificar se as colunas do FROM ta de acordo com os alias do SELECT.
             # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
-        def is_join_valid(params: List[str]) -> bool:
+        def is_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
-        def is_on_valid(params: List[str]) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
-
-        def is_where_valid(params: List[str]) -> bool:
+        def is_where_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Botar uma exceção aqui em um simples IF.
             pass
 
         # Responsável pela chamada de uma função específica para uma cláusula SQL específica.
-        validator: Dict[str, Callable[[List[str]], bool]] = {
+        validator: Dict[str, Callable[[str], bool]] = {
             "SELECT": is_select_valid,
             "FROM": is_from_valid,
             "JOIN": is_join_valid,
