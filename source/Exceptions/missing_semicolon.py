@@ -15,7 +15,7 @@ def raise_missing_semicolon_exception(sql_command: str) -> None:
         verificação e validação.
 
     Raises:
-        MissingSemiColonAtEnd: Exceção customizada para
+        MissingSemicolonException: Exceção customizada para
         alertar a falta de ';' no final de um comando SQL.
     """
     raise MissingSemicolonException(

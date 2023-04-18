@@ -15,7 +15,7 @@ def raise_invalid_select_params(sql_command: str) -> None:
         validação dos parâmetros na cláusula SELECT.
 
     Raises:
-        MissingSelectParametersException: Exceção 
+        InvalidSelectParametersException: Exceção 
         customizada para alertar a existência de 
         parâmetros incorretos na cláusula SELECT.
     """
