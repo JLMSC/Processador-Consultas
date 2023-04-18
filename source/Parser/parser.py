@@ -33,7 +33,7 @@ class Parser:
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
     __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s|where\s)*;$'
     # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
-    __sql_select_params_pattern: str = r'\*|^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$|^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$'
+    __sql_select_params_pattern: str = r'\*|^([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*$'
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -249,6 +249,7 @@ class Parser:
             """
             if params:
                 if re.match(self.sql_select_params_pattern, params) is not None:
+                    # FIXME: Posso aproveitar o regex "sql_select_params_pattern" e ja pegar as colunas e/ou tabelas.
                     return True
                 raise_invalid_select_params(self.sql_command)
             raise_missing_select_params_exception(self.sql_command)

@@ -17,13 +17,14 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `(;&)` - Captura em um grupo o *";"*, porém este deve estar localizado ao final de um texto.
 > Essa expressão regular tem como objetivo separar algumas *palavras reservadas* do comando SQL.
 
-`\*|^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$|^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$`
+`\*|^([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*$`
 ###### *~~Eu não sei como eu cheguei nesse resultado mas só de olhar da dor de cabeça~~*
-* `\*` - Captura o *"\*"*, é isso.
-* `|` - Operador *OR*.
-* `^[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*)*$` - Captura parâmetros únicos ou separados por uma vírgula, em que esses parâmetros devem começar com uma letra, sendo minúsucula ou maiúsucla e pode ter qualquer quantia de letras, dígitos e *_ (underline)*.
-* `^[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*(,\s*[a-zA-Z]+[a-zA-Z0-9_]*\.[a-zA-Z]+[a-zA-Z0-9_]*)*$` - Captura parâmetros únicos ou separados por uma vírgula, no formato "nomeTabela.nomeColuna", em que esses parâmetros devem começar com uma letra, sendo minúscula ou maiúscula e pode ter qualquer quantia de letras, dígitos e *_ (underline)*, ai tem o *.* e o mesmo é aplicado pro texto além do ponto.
-> Entradas como `123foo.bar`, `usuario.nome, usuario.idade,` e dentre outros **NÃO** serão aceitos.
+* `\*` - Captura o *\**, é isso.
+* `([a-zA-Z][a-zA-Z0-9_]*\.)?` - Captura um grupo OPCIONAL em que deve começar com uma letra minúscula ou maiúscula, seguida por qualquer quantia de letras, dígitos ou _ (underline), o texto deve terminar com um . (ponto), basicamente captura o formato *"nomeTabela."*
+* `[a-zA-Z][a-zA-Z0-9_]*` - Captura o nome da coluna.
+* `(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*` - Captura o que eu falei antes, podendo ser no formato *"nomeColuna"* ou *"nomeTabela.nomeColuna"* **N** vezes, sendo eles separados por uma vírgula.
+* `$` - final da linha.
+> Basicamente o regex é usado para capturar parâmetros da cláusula SELECT, podendo ser um *\**, ou nos formatos *nomeTabela.nomeColuna* ou *nomeColuna*, ambos sendo separados por vírgulas e repetíveis qualquer quantia de vezes.
 
 `^select\sfrom\s(?:join\son\s|where\s)*;$'`
 * `^select\s` - Deve começar com um *select* seguido de qualquer quantia de espaços.
