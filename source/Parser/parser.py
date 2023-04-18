@@ -23,9 +23,9 @@ class Parser:
     # Os parâmetros associados as cláusulas SQL, de um comando qualquer.
     __sql_params: List[str]
     # As tabelas usadas no comando SQL.
-    __sql_tables: Set[str]
+    __sql_tables: Dict[str, Set[str]]
     # As colunas usadas no comando SQL.
-    __sql_columns: Set[str]
+    __sql_columns: Dict[str, Set[str]]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
     __sql_token_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
@@ -49,8 +49,8 @@ class Parser:
         self.sql_tokens = self.__tokenize()
         self.__validate_tokens()
         self.sql_params = self.__extract_params()
-        self.__sql_tables = set()
-        self.__sql_columns = set()
+        self.__sql_tables = {"SELECT": set(), "FROM": set(), "JOIN": set(), "ON": set(), "WHERE": set()}
+        self.__sql_columns = {"SELECT": set(), "FROM": set(), "JOIN": set(), "ON": set(), "WHERE": set()}
         self.__validate_params()
 
     @property
@@ -136,53 +136,53 @@ class Parser:
         self.__sql_params = new_sql_params
 
     @property
-    def sql_tables(self) -> Set[str]:
+    def sql_tables(self) -> Dict[str, Set[str]]:
         """Extrai o conteúdo da variável privada sql_tables.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das tabelas utilizadas no comando SQL.
 
         Returns:
-            Set[str]: O conteúdo da variável privada da classe,
+            Dict[str, Set[str]]: O conteúdo da variável privada da classe,
             ou seja, o nome das tabelas.
         """
         return self.__sql_tables
 
     @sql_tables.setter
-    def sql_tables(self, new_sql_tables: Set[str]) -> None:
+    def sql_tables(self, new_sql_tables: Dict[str, Set[str]]) -> None:
         """Altera o conteúdo da variável privada sql_tables.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das tabelas de um comando SQL.
 
         Args:
-            new_sql_tables (Set[str]): As tabelas utilizadas
+            new_sql_tables (Dict[str, Set[str]]): As tabelas utilizadas
             no comando SQL.
         """
         self.sql_tables = new_sql_tables
 
     @property
-    def sql_columns(self) -> Set[str]:
+    def sql_columns(self) -> Dict[str, Set[str]]:
         """Extrai o conteúdo da variável privada sql_columns.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das colunas utilizadas no comando SQL.
 
         Returns:
-            Set[str]: O conteúdo da variável privada da classe,
+            Dict[str, Set[str]]: O conteúdo da variável privada da classe,
             ou seja, o nome das colunas.
         """
         return self.__sql_columns
 
     @sql_columns.setter
-    def sql_columns(self, new_sql_columns: Set[str]) -> None:
+    def sql_columns(self, new_sql_columns: Dict[str, Set[str]]) -> None:
         """Altera o conteúdo da variável privada sql_columns.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das colunas de um comando SQL.
 
         Args:
-            new_sql_columns (Set[str]): As colunas
+            new_sql_columns (Dict[str, Set[str]]): As colunas
             utilizadas no comando SQL.
         """
         self.sql_columns = new_sql_columns
@@ -323,13 +323,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables.add(table_name)
-                            self.sql_columns.add(column_name)
+                            self.sql_tables["SELECT"].add(table_name)
+                            self.sql_columns["SELECT"].add(column_name)
                         else:
-                            self.sql_columns.add(match[1])
+                            self.sql_columns["SELECT"].add(match[1])
                     # Indica que os parâmetros do SELECT são válidos.
                     return True
-                Exceptions.raise_invalid_select_params(self.sql_command)
+                Exceptions.raise_invalid_select_params_exception(self.sql_command)
             Exceptions.raise_missing_select_params_exception(self.sql_command)
 
         def is_from_valid(params: str) -> bool:
@@ -351,10 +351,10 @@ class Parser:
                     param_pattern: str = r'(\w+)'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
-                        self.sql_tables.add(match)
+                        self.sql_tables["FROM"].add(match)
                     # Indica que os parâmetros do FROM são válidos.
                     return True
-                Exceptions.raise_invalid_from_params(self.sql_command)
+                Exceptions.raise_invalid_from_params_exception(self.sql_command)
             Exceptions.raise_missing_from_params_exception(self.sql_command)
 
         def is_join_valid(params: str) -> bool:
@@ -388,4 +388,5 @@ class Parser:
             params_str: str = ' '.join(str(p) for p in params)
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
             params_are_valid = all([validator[self.sql_tokens[i][0]](params_str), params_are_valid])
+        # FIXME: Antes de retornar "params_are_valid", verificar se o nome das colunas e tabelas são compatíveis.
         return params_are_valid
