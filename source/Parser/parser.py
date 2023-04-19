@@ -27,15 +27,16 @@ class Parser:
     # As colunas usadas no comando SQL.
     __sql_columns: Dict[str, Set[str]]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
-    __sql_token_pattern: str = r'\b(select|from|join|on|where)\b|(;$)'
+    __sql_token_pattern: str = r'\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
-    __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s|where\s)*;$'
+    # __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s|where\s)*;$'
+    __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s((and|in|not\sin)\s)*?|where\s((and|in|not\sin)\s)*?)*;$'
     # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
-    __sql_select_params_pattern: str = r'\*|^([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*(,[ ]*([a-zA-Z][a-zA-Z0-9_]*\.)?[a-zA-Z][a-zA-Z0-9_]*)*$'
+    __sql_select_params_pattern: str = r'\*|^([a-zA-Z]\w*\.)?[a-zA-Z]\w*(,[ ]*([a-zA-Z]\w*\.)?[a-zA-Z]\w*)*$'
     # Expressão regular para validação dos parâmetros da cláusula FROM do MySQL.
-    __sql_from_params_pattern: str = r'^[a-zA-Z][a-zA-Z0-9_]*(,[ ]*[a-zA-Z][a-zA-Z0-9_]*)*$'
+    __sql_from_params_pattern: str = r'^[a-zA-Z]\w*(,[ ]*[a-zA-Z]\w*)*$'
     # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
-    __sql_join_params_pattern: str = r'^[a-zA-Z][a-zA-Z0-9_]*$'
+    __sql_join_params_pattern: str = r'^[a-zA-Z]\w*$'
     # TODO: Regex pro ON
 
     def __init__(self, sql_command: str) -> None:
@@ -401,9 +402,25 @@ class Parser:
         def is_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            if params:
+                return True
 
         def is_where_valid(params: str) -> bool:
+            # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
+            pass
+
+        def is_and_valid(params: str) -> bool:
+            # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
+            pass
+
+        def is_in_valid(params: str) -> bool:
+            # TODO: Implementar isso aqui.
+            # TODO: Botar uma exceção aqui em um simples IF.
+            pass
+
+        def is_not_in_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Botar uma exceção aqui em um simples IF.
             pass
@@ -414,7 +431,10 @@ class Parser:
             "FROM": is_from_valid,
             "JOIN": is_join_valid,
             "ON": is_on_valid,
-            "WHERE": is_where_valid
+            "WHERE": is_where_valid,
+            "AND": is_and_valid,
+            "IN": is_in_valid,
+            "NOT IN": is_not_in_valid
         }
 
         # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
