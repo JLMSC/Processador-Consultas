@@ -37,7 +37,8 @@ class Parser:
     __sql_from_params_pattern: str = r'^[a-zA-Z]\w*(,[ ]*[a-zA-Z]\w*)*$'
     # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
     __sql_join_params_pattern: str = r'^[a-zA-Z]\w*$'
-    # TODO: Regex pro ON
+    # Expressão regular para validação de uma condicional.
+    __sql_statement_params_pattern: str = r'(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)\.([a-zA-Z]\w*)$'
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -53,6 +54,7 @@ class Parser:
         self.sql_tokens = self.__tokenize()
         self.__validate_tokens()
         self.sql_params = self.__extract_params()
+        # TODO: Botar o AND, IN, NOT IN
         self.__sql_tables = {"SELECT": set(), "FROM": set(), "JOIN": set(), "ON": set(), "WHERE": set()}
         self.__sql_columns = {"SELECT": set(), "FROM": set(), "JOIN": set(), "ON": set(), "WHERE": set()}
         self.__validate_params()
@@ -256,6 +258,18 @@ class Parser:
         """
         return self.__sql_join_params_pattern
 
+    @property
+    def sql_statement_params_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_statement_params_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação de uma condicional, retornando o seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_statement_params_pattern
+
     def __adapt_termination(self) -> None:
         """Altera a terminação de um comando SQL.
 
@@ -399,18 +413,30 @@ class Parser:
                 Exceptions.raise_invalid_join_params_exception(self.sql_command)
             Exceptions.raise_missing_join_params_exception(self.sql_command)
 
-        def is_on_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
+        def is_statement_valid(params: str) -> bool:
+            """Verifica se alguma condicional, de alguma cláusula SQL, é válida.
+
+            Junta os parâmetros coletados do comando SQL, de alguma cláusula,
+            e aplica o regex no mesmo, verificando se existe algum 'match' com
+            todos os condicionais.
+
+            Args:
+                params (str): A condicional de alguma cláusula SQL.
+
+            Returns:
+                bool: Se a condicional fornecido é válida ou não.
+            """
             if params:
-                return True
+                if (matches := re.match(self.sql_statement_params_pattern, params)) is not None:
+                    match_group = matches.groups()
+                    # Verifica se as tabelas são diferentes.
+                    if match_group[0] != match_group[3]:
+                        return True
+                    Exceptions.raise_conflicting_table_exception(params)
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("ON")
 
         def is_where_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
-
-        def is_and_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
             # TODO: Botar uma exceção aqui em um simples IF.
             pass
@@ -430,9 +456,9 @@ class Parser:
             "SELECT": is_select_valid,
             "FROM": is_from_valid,
             "JOIN": is_join_valid,
-            "ON": is_on_valid,
+            "ON": is_statement_valid,
             "WHERE": is_where_valid,
-            "AND": is_and_valid,
+            "AND": is_statement_valid,
             "IN": is_in_valid,
             "NOT IN": is_not_in_valid
         }
