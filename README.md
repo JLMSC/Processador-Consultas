@@ -27,6 +27,14 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `;$` - O texto deve terminar com um *;*.
 > No geral, esse RegEx é usado para verificar a estrutura do comando SQL, ou seja, o posicionamento das cláusulas SQL.
 
+#### **Verificação de estrutura de uma condicional, de alguma cláusula SQL.**
+`(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)\.([a-zA-Z]\w*)$`
+* `(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)` - Captura um grupo no formato "nomeTabela.nomeColuna".
+* `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo, com espaço no começo e no fim do texto, contendo um dos operadores: *=, >, <, <=, >=, <>*.
+* `([a-zA-Z]\w*)\.([a-zA-Z]\w*)` - A mesma coisa do anterior, captura um grupo no formato "nomeTabela.nomeColuna".
+* `$` - Final da linha
+> Usado para condicionais somente.
+
 #### **Validação dos parâmetros do SELECT**
 `\*|^([a-zA-Z]\w*\.)?[a-zA-Z]\w*(,[ ]*([a-zA-Z]\w*\.)?[a-zA-Z]\w*)*$`
 ###### *~~Eu não sei como eu cheguei nesse resultado mas só de olhar da dor de cabeça~~*
