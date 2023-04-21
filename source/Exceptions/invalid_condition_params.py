@@ -22,5 +22,5 @@ def raise_invalid_statement_params_exception(statement: str) -> None:
     """
     raise InvalidStatementParametersException(
         statement +
-        "\nA condicional fornecido é inválida."
+        "\nA condicional fornecida é inválida."
     )
