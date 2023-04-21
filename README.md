@@ -27,14 +27,6 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `;$` - O texto deve terminar com um *;*.
 > No geral, esse RegEx é usado para verificar a estrutura do comando SQL, ou seja, o posicionamento das cláusulas SQL.
 
-#### **Verificação de estrutura de uma condicional, de alguma cláusula SQL.**
-`(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)\.([a-zA-Z]\w*)$`
-* `(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)` - Captura um grupo no formato "nomeTabela.nomeColuna".
-* `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo, com espaço no começo e no fim do texto, contendo um dos operadores: *=, >, <, <=, >=, <>*.
-* `([a-zA-Z]\w*)\.([a-zA-Z]\w*)` - A mesma coisa do anterior, captura um grupo no formato "nomeTabela.nomeColuna".
-* `$` - Final da linha
-> Usado para condicionais somente.
-
 #### **Validação dos parâmetros do SELECT**
 `\*|^([a-zA-Z]\w*\.)?[a-zA-Z]\w*(,[ ]*([a-zA-Z]\w*\.)?[a-zA-Z]\w*)*$`
 ###### *~~Eu não sei como eu cheguei nesse resultado mas só de olhar da dor de cabeça~~*
@@ -58,3 +50,17 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `\w*` - Captura um caractere alfanumérico 0 ou N vezes ao longo do texto.
 * `$` - Final da linha.
 > Basicamente pega um texto qualquer que deve começar com uma letra, é isso.
+
+#### **Validação dos parâmetros do ON**
+`(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)\.([a-zA-Z]\w*)$`
+* `(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)` - Captura um grupo no estilo "nomeTabela.nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
+* `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
+* `$` - Final da linha.
+> Basicamente captura uma condicional.
+
+#### **Validação dos parâmetros do WHERE**
+`([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)$`
+* `([a-zA-Z]\w*)` - Captura um grupo no estilo "nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
+* `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
+* `$` - Final da linha.
+> Basicamente captura uma condicional.
