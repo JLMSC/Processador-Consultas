@@ -37,9 +37,9 @@ class Parser:
     # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
     __sql_join_params_pattern: str = r'^[a-zA-Z]\w*$'
     # Expressão regular para validação dos parâmetros da cláusula ON do MySQL.
-    __sql_on_params_pattern: str = r'(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)\.([a-zA-Z]\w*)$'
+    __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$'
     # Expressão regular para validação dos parâmetros da cláusula WHERE do MySQL.
-    __sql_where_params_pattern: str = r'([a-zA-Z]\w*)\s(=|>|<|<=|>=|<>)\s([a-zA-Z]\w*)$'
+    __sql_where_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$'
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -457,12 +457,34 @@ class Parser:
             Exceptions.raise_missing_join_params_exception(self.sql_command)
 
         def is_on_valid(params: str) -> bool:
-            # TODO: Doc
+            """Verifica se a condicional da cláusula ON é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula ON,
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula ON.
+
+            Returns:
+                bool: Se a condicional é válidos ou não.
+            """
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
+                    # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
+                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        if match[0]:
+                            (table_name, column_name) = match[0].split(".")
+                            self.sql_tables["ON"].add(table_name)
+                            self.sql_columns["ON"].add(column_name)
+                        else:
+                            self.sql_columns["ON"].add(match[1])
+                    # Indica que a condicional da cláusula ON é válida.
                     return True
-                # TODO: (ON) PARÂMETROS INVALDIOS.
-            # TODO: (ON) PARAMETROS FALTANDOS.
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("ON")
 
         def is_and_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
@@ -480,12 +502,34 @@ class Parser:
             pass
 
         def is_where_valid(params: str) -> bool:
-            # TODO: Doc
+            """Verifica se a condicional da cláusula WHERE é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula WHERE,
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula WHERE.
+
+            Returns:
+                bool: Se a condicional é válidos ou não.
+            """
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
+                    # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
+                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        if match[0]:
+                            (table_name, column_name) = match[0].split(".")
+                            self.sql_tables["WHERE"].add(table_name)
+                            self.sql_columns["WHERE"].add(column_name)
+                        else:
+                            self.sql_columns["WHERE"].add(match[1])
+                    # Indica que a condicional da cláusula ON é válida.
                     return True
-                # TODO: (WHERE) PARAMETROS INVALIDOS.
-            # TODO: (WHERE) PARAMETROS FALTANDOS.
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("WHERE")
 
         def is_and_where_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
