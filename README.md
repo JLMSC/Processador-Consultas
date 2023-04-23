@@ -11,9 +11,11 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 
 ## **As maravilhosas Expresões Regulares utilizadas.**
 #### **Detecção das cláusulas SQL**
-`\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)`
+`(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b(?!([^()]*\)))|(;$)`
+* `(?<!\()` - Verifica se algum grupo não possui um **(** no começo. 
 * `\b` - Delimitador, indica que alguma coisa deve começar, ou terminar *(depende de sua posição no RegEx)*, com um caractere específico.
 * `(select|from|join|on|where|and|in|not\s+in)` - Captura em um grupo as seguintes palavras: *"select, from, join, on, and, in, not in"* ou *"where"*.
+* `(?!([^()]*\)))` - Garante que não haja um um parêntese de fechamento após o ponto atual da verificação, o que significa que o padrão correspondente não está dentro de um par de parênteses.
 * `|` - Operador *OR*.
 * `(;&)` - Captura em um grupo o *";"*, porém este deve estar localizado ao final de um texto.
 > Essa expressão regular tem como objetivo separar algumas *palavras reservadas* do comando SQL.
@@ -29,7 +31,6 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 
 #### **Validação dos parâmetros do SELECT**
 `\*|^([a-zA-Z]\w*\.)?[a-zA-Z]\w*(,[ ]*([a-zA-Z]\w*\.)?[a-zA-Z]\w*)*$`
-###### *~~Eu não sei como eu cheguei nesse resultado mas só de olhar da dor de cabeça~~*
 * `\*` - Captura o *\**, é isso.
 * `([a-zA-Z]\w*\.)?` - Captura um grupo OPCIONAL em que deve começar com uma letra minúscula ou maiúscula, seguida por qualquer quantia de letras, dígitos ou _ (underline), o texto deve terminar com um . (ponto), basicamente captura o formato *"nomeTabela."*
 * `[a-zA-Z]\w*` - Captura o nome da coluna.
@@ -71,3 +72,16 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 * `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
 * `$` - Final da linha.
 > Basicamente captura uma condicional.
+
+#### **Validação dos parâmetros do IN**
+`\(\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*(?:,\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand2>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*)*\)`
+###### *~~As expressões regulares tão ficando cada vez pior~~*
+* `\(` - Um parêntese de abertura.
+* `\s*` - Zero ou mais espaços em branco.
+* `(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))` - Uma expressão regular que captura o conteúdo entre parênteses, essa expressão tem cinco opções:
+    * `(?:'(?:\\'|[^'])*')` - Captura uma string delimitada por aspas simples, pode ser aspas escapadas *(\\' ou \\")*.
+    * `(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)` - Captura um número inteiro ou decimal, com ou sem notação científica.
+    * `(?:true|True|false|False)` - Captura um valor booleano.
+    * `(?:null|NULL)` - Captura um valor nulo.
+    * `(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+))` -  Captura uma subconsulta SELECT, nomeada de "subcommand1".
+    * `(?:,\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand2>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*)*` - É uma expressão regular que captura uma lista separada por vírgulas de qualquer combinação de strings, números, valores booleanos, valores nulos e subconsultas SELECT (nomeada de "subcommand2"). Cada item da lista é separado por uma vírgula, podendo ter zero ou mais espaços em branco.
