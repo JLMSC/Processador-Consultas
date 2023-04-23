@@ -60,9 +60,11 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 > Basicamente captura uma condicional.
 
 #### **Validação dos parâmetros do WHERE**
-`(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$`
+`(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'`
 * `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))` - Captura um grupo no estilo "nomeTabela.nomeColuna" OU "nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
 * `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
+* `([a-zA-Z]\w*)` - Captura um texto alfanumérico qualquer, deve começar com uma letra minúscula ou maiúscula.
+* `([0-9]+)` - Captura um grupo numérico (somente inteiros).
 * `$` - Final da linha.
 > Basicamente captura uma condicional.
 
