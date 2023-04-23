@@ -1,21 +1,28 @@
-"""Arquivo responsável pela exceção relacionada ao
-uso de uma ou mais tabelas incompatíveis no comando SQL.
+"""Arquivo responsável pela exceção relacionada a
+existencia da utilização de tabelas incompatíveis em
+uma cláusula SQL.
 """
 
 class TableMismatchException(Exception):
-    """Exceção lançada quando existe uma ou 
-    mais tabelas incompatíveis no comando SQL.
+    """Exceção lançada quando existe a
+    utilização de tabelas incompatíveis em
+    uma cláusula SQL.
     """
 
-def raise_table_mismatch_exception() -> None:
-    """Lança uma exceção quando existe uma ou
-    mais tabelas incompatíveis no comando SQL.
+def raise_table_mismatch_exception(clause: str) -> None:
+    """Lança uma exceção quando existe a
+    utilização de tabelas incompatíveis em
+    uma cláusula SQL.
+
+    Args:
+        clause (str): O nome da cláusula que contém
+        a utilização de tabelas incompatíveis.
 
     Raises:
         TableMismatchException: Exceção customizada
-        para alertar a existência de uma ou mais
-        tabelas incompatíveis no comando SQL.
+        para alertar a utilização de tabelas icompatíveis
+        em uma cláusula SQL.
     """
     raise TableMismatchException(
-        "Existe uma ou mais tabelas incompatíveis no comando SQL fornecido."
+        f"Alguma tabela usada em '{clause}' não existe no contexto do comando SQL fornecido."
     )
