@@ -487,9 +487,34 @@ class Parser:
             Exceptions.raise_missing_statement_exception("ON")
 
         def is_and_on_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            """Verifica se a condicional da cláusula AND (do ON) é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula AND (do ON),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula AND (do ON).
+
+            Returns:
+                bool: Se a condicional é válida ou não.
+            """
+            if params:
+                if re.match(self.sql_on_params_pattern, params) is not None:
+                    # Captura o nome das tableas e colunas usada na condicional e armazena-as.
+                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        if match[0]:
+                            (table_name, column_name) = match[0].split(".")
+                            self.sql_tables["AND_ON"].add(table_name)
+                            self.sql_columns["AND_ON"].add(column_name)
+                        else:
+                            self.sql_columns["AND_ON"].add(match[1])
+                    # Indica que a condicional da cláusula AND (do ON) é válida.
+                    return True
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("AND (do ON)")
 
         def is_in_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
@@ -532,9 +557,34 @@ class Parser:
             Exceptions.raise_missing_statement_exception("WHERE")
 
         def is_and_where_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            """Verifica se a condicional da cláusula AND (do WHERE) é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula AND (do WHERE),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula AND (do WHERE).
+
+            Returns:
+                bool: Se a condicional é válida ou não.
+            """
+            if params:
+                if re.match(self.sql_where_params_pattern, params) is not None:
+                    # Captura o nome das tableas e colunas usada na condicional e armazena-as.
+                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    matches = re.findall(param_pattern, params)
+                    for match in matches:
+                        if match[0]:
+                            (table_name, column_name) = match[0].split(".")
+                            self.sql_tables["AND_WHERE"].add(table_name)
+                            self.sql_columns["AND_WHERE"].add(column_name)
+                        else:
+                            self.sql_columns["AND_WHERE"].add(match[1])
+                    # Indica que a condicional da cláusula AND (do WHERE) é válida.
+                    return True
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("AND (do WHERE)")
 
         def is_in_where_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
