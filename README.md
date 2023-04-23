@@ -85,3 +85,6 @@ Implementação de um **Processador de Consultas** em **Python 3**.
     * `(?:null|NULL)` - Captura um valor nulo.
     * `(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+))` -  Captura uma subconsulta SELECT, nomeada de "subcommand1".
     * `(?:,\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand2>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*)*` - É uma expressão regular que captura uma lista separada por vírgulas de qualquer combinação de strings, números, valores booleanos, valores nulos e subconsultas SELECT (nomeada de "subcommand2"). Cada item da lista é separado por uma vírgula, podendo ter zero ou mais espaços em branco.
+
+#### **Validação dos parâmetros do NOT IN**
+> Mesma expressão regular utilizada para **validação dos parâmetros do IN**.
