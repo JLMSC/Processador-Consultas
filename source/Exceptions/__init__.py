@@ -4,7 +4,6 @@ customizadas e, também, a utilização das exceções."""
 # pylint: disable=import-error
 from .table_mismatch import raise_table_mismatch_exception
 from .missing_command import raise_missing_command_exception
-from .table_conflict import raise_conflicting_table_exception
 from .missing_semicolon import raise_missing_semicolon_exception
 from .incorrect_order import raise_incorrect_clause_order_exception
 from .missing_from_params import raise_missing_from_params_exception
@@ -23,7 +22,6 @@ __all__ = [
     'raise_missing_command_exception',
     'raise_missing_statement_exception',
     'raise_missing_semicolon_exception',
-    'raise_conflicting_table_exception',
     'raise_missing_join_params_exception',
     'raise_invalid_join_params_exception',
     'raise_invalid_from_params_exception',
