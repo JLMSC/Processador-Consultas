@@ -67,6 +67,7 @@ class Parser:
             for key in ["SELECT", "FROM", "JOIN", "ON", "AND_ON", "IN_ON", "NOT IN_ON", "WHERE", "AND_WHERE", "IN_WHERE", "NOT IN_WHERE"]
         }
         self.__validate_params()
+        self.__validate_table_compatibility()
 
     @property
     def sql_command(self) -> str:
@@ -671,3 +672,23 @@ class Parser:
         for i, params in enumerate(self.sql_params):
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
             validator[self.sql_tokens[i][0]](params)
+
+    def __validate_table_compatibility(self) -> None:
+        """Verifica se todas as tabelas usadas no 
+        comando SQL fornecido são compatíveis.
+        
+        Itera sobre as tabelas de cada cláusula registrada,
+        verificando se todas possuem alguma relação com as
+        tabelas do FROM e JOIN.
+        """
+
+        # Separa as tabelas válidas (aquelas que são adicionadas por cláusulas).
+        valid_tables: Set[str] = self.sql_tables['FROM'].union(self.sql_tables['JOIN'])
+        for clause, tables in self.sql_tables.items():
+            # Ignora as cláusulas do FROM e JOIN (eles adicionam tabelas).
+            if clause not in ["FROM", "JOIN"]:
+                if tables:
+                    if tables.issubset(valid_tables):
+                        continue
+                    else:
+                        Exceptions.raise_table_mismatch_exception(clause)
