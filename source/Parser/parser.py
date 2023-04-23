@@ -27,7 +27,8 @@ class Parser:
     # As colunas usadas no comando SQL.
     __sql_columns: Dict[str, Set[str]]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
-    __sql_token_pattern: str = r'\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)'
+    # __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)'
+    __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b(?!([^()]*\)))|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
     __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s((and|in|not\sin)\s)*?|where\s((and|in|not\sin)\s)*?)*;$'
     # Expressão regular para validação dos parâmetros da cláusula SELECT do MySQL.
@@ -40,6 +41,8 @@ class Parser:
     __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$'
     # Expressão regular para validação dos parâmetros da cláusula WHERE do MySQL.
     __sql_where_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$'
+    # Expressão regular para validação dos parâmetros da cláusula IN do MySQL.
+    __sql_in_params_pattern: str = r"\(\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*(?:,\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand2>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*)*\)"
 
     def __init__(self, sql_command: str) -> None:
         """Construtor da classe.
@@ -53,8 +56,8 @@ class Parser:
         self.sql_command = sql_command
         self.__adapt_termination()
         self.sql_tokens = self.__tokenize()
-        self.__validate_tokens()
         self.sql_params = self.__extract_params()
+        self.__validate_tokens()
         # TODO: Refatorar isso ai.
         self.__sql_tables = {
             "SELECT": set(), "FROM": set(), "JOIN": set(), 
@@ -293,6 +296,19 @@ class Parser:
         """
         return self.__sql_where_params_pattern
 
+    @property
+    def sql_in_params_pattern(self) -> str:
+        """Extrai o conteúdo da variável privada sql_in_params_pattern.
+
+        Acessa a variável privada da classe, responsável pelo regex
+        da verificação e validação dos parâmetros da cláusula IN,
+        retornando o seu conteúdo.
+
+        Returns:
+            str: O conteúdo, regex, da variável privada da classe.
+        """
+        return self.__sql_in_params_pattern
+
     def __adapt_termination(self) -> None:
         """Altera a terminação de um comando SQL.
 
@@ -321,9 +337,8 @@ class Parser:
             o texto representando um comando SQL e sua posição no texto.
         """
         return [
-            (token, i)
-            for i, token in enumerate(self.sql_command.strip().split())
-            if re.match(self.sql_token_pattern, token, re.IGNORECASE)
+            (match.group(), match.start())
+            for match in re.finditer(self.sql_token_pattern, self.sql_command, re.IGNORECASE)
         ]
 
     def __extract_params(self) -> List[str]:
@@ -338,9 +353,10 @@ class Parser:
             List[str]: Uma lista, contendo os parâmetros
             associados as claúsulas SQL.
         """
-        commands: List[str] = self.sql_command.strip().split()
         return [
-            commands[self.sql_tokens[i-1][1]+1:self.sql_tokens[i][1]]
+            self.sql_command[self.sql_tokens[i - 1][1]:self.sql_tokens[i][1]]
+            .replace(self.sql_tokens[i - 1][0], "")
+            .strip()
             for i in range(1, len(self.sql_tokens))
         ]
 
@@ -501,7 +517,7 @@ class Parser:
             """
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
-                    # Captura o nome das tableas e colunas usada na condicional e armazena-as.
+                    # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
                     param_pattern: str = r'(\w+\.\w+)|(\w+)'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
@@ -517,9 +533,28 @@ class Parser:
             Exceptions.raise_missing_statement_exception("AND (do ON)")
 
         def is_in_on_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            """Verifica se a condicional da cláusula IN (do ON) é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula IN (do ON),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula IN (do ON).
+
+            Returns:
+                bool: Se a condicional é válida ou não.
+            """
+            if params:
+                if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
+                    # Verifica a subconsulta do IN (do ON).
+                    if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
+                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
+                        Parser(subcommand + ";")
+                    # Indica que a condicional da cláusula IN (do ON) é válida.
+                    return True
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("IN (do ON)")
 
         def is_not_in_on_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
@@ -571,7 +606,7 @@ class Parser:
             """
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
-                    # Captura o nome das tableas e colunas usada na condicional e armazena-as.
+                    # Captura o nome das tabeleas e colunas usada na condicional e armazena-as.
                     param_pattern: str = r'(\w+\.\w+)|(\w+)'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
@@ -587,9 +622,28 @@ class Parser:
             Exceptions.raise_missing_statement_exception("AND (do WHERE)")
 
         def is_in_where_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+            """Verifica se a condicional da cláusula IN (do WHERE) é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula IN (do WHERE),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula IN (do WHERE).
+
+            Returns:
+                bool: Se a condicional é válida ou não.
+            """
+            if params:
+                if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
+                    # Verifica a subconsulta do IN (do WHERE).
+                    if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
+                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
+                        Parser(subcommand + ";")
+                    # Indica que a condicional da cláusula IN (do WHERE) é válida.
+                    return True
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("IN (do WHERE)")
 
         def is_not_in_where_valid(params: str) -> bool:
             # TODO: Implementar isso aqui.
@@ -615,9 +669,9 @@ class Parser:
         params_are_valid: bool = True
         for i, params in enumerate(self.sql_params):
             # Junta os parâmetros de uma cláusula em uma string única.
-            params_str: str = ' '.join(str(p) for p in params)
+            # params_str: str = ' '.join(str(p) for p in params)
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
-            params_are_valid = all([validator[self.sql_tokens[i][0]](params_str), params_are_valid])
+            params_are_valid = all([validator[self.sql_tokens[i][0]](params), params_are_valid])
         # FIXME: Antes de retornar "params_are_valid", verificar se o nome das colunas e tabelas são compatíveis.
         # FIXME: Nem faz sentido retornar True ou False
         return params_are_valid
