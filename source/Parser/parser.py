@@ -387,11 +387,11 @@ class Parser:
         else:
             Exceptions.raise_incorrect_clause_order_exception(self.sql_command)
 
-    def __validate_params(self) -> bool:
+    def __validate_params(self) -> None:
         """Verifica a validez de todos os parâmetros coletados das cláusulas SQL.
         """
 
-        def is_select_valid(params: str) -> bool:
+        def is_select_valid(params: str) -> None:
             """Verifica se os parâmetros da cláusula SELECT são válidos.
 
             Junta os parâmetros coletados do comando SQL, da cláusula SELECT,
@@ -400,9 +400,6 @@ class Parser:
 
             Args:
                 params (str): Os parâmetros da cláusula SELECT.
-
-            Returns:
-                bool: Se os parâmetros são válidos ou não.
             """
             if params:
                 if re.match(self.sql_select_params_pattern, params) is not None:
@@ -417,12 +414,10 @@ class Parser:
                             self.sql_columns["SELECT"].add(column_name)
                         else:
                             self.sql_columns["SELECT"].add(match[1])
-                    # Indica que os parâmetros do SELECT são válidos.
-                    return True
                 Exceptions.raise_invalid_select_params_exception(self.sql_command)
             Exceptions.raise_missing_select_params_exception(self.sql_command)
 
-        def is_from_valid(params: str) -> bool:
+        def is_from_valid(params: str) -> None:
             """Verifica se os parâmetros da cláusula FROM são válidos.
 
             Junta os parâmetros coletados do comando SQL, da cláusula FROM,
@@ -431,9 +426,6 @@ class Parser:
 
             Args:
                 params (str): Os parâmetros da cláusula FROM.
-
-            Returns:
-                bool: Se os parâmetros são válidos ou não.
             """
             if params:
                 if re.match(self.sql_from_params_pattern, params) is not None:
@@ -442,12 +434,10 @@ class Parser:
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         self.sql_tables["FROM"].add(match)
-                    # Indica que os parâmetros do FROM são válidos.
-                    return True
                 Exceptions.raise_invalid_from_params_exception(self.sql_command)
             Exceptions.raise_missing_from_params_exception(self.sql_command)
 
-        def is_join_valid(params: str) -> bool:
+        def is_join_valid(params: str) -> None:
             """Verifica se os parâmetros da cláusula JOIN são válidos.
 
             Junta os parâmetros coletados do comando SQL, da cláusula JOIN,
@@ -456,9 +446,6 @@ class Parser:
 
             Args:
                 params (str): Os parâmetros da cláusula JOIN.
-
-            Returns:
-                bool: Se os parâmetros são válidos ou não.
             """
             if params:
                 if re.match(self.sql_join_params_pattern, params) is not None:
@@ -467,12 +454,10 @@ class Parser:
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         self.sql_tables["JOIN"].add(match)
-                    # Indica que os parâmetros do FROM são válidos.
-                    return True
                 Exceptions.raise_invalid_join_params_exception(self.sql_command)
             Exceptions.raise_missing_join_params_exception(self.sql_command)
 
-        def is_on_valid(params: str) -> bool:
+        def is_on_valid(params: str) -> None:
             """Verifica se a condicional da cláusula ON é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula ON,
@@ -481,9 +466,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula ON.
-
-            Returns:
-                bool: Se a condicional é válidos ou não.
             """
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
@@ -497,12 +479,10 @@ class Parser:
                             self.sql_columns["ON"].add(column_name)
                         else:
                             self.sql_columns["ON"].add(match[1])
-                    # Indica que a condicional da cláusula ON é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("ON")
 
-        def is_and_on_valid(params: str) -> bool:
+        def is_and_on_valid(params: str) -> None:
             """Verifica se a condicional da cláusula AND (do ON) é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula AND (do ON),
@@ -511,9 +491,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula AND (do ON).
-
-            Returns:
-                bool: Se a condicional é válida ou não.
             """
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
@@ -527,12 +504,10 @@ class Parser:
                             self.sql_columns["AND_ON"].add(column_name)
                         else:
                             self.sql_columns["AND_ON"].add(match[1])
-                    # Indica que a condicional da cláusula AND (do ON) é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("AND (do ON)")
 
-        def is_in_on_valid(params: str) -> bool:
+        def is_in_on_valid(params: str) -> None:
             """Verifica se a condicional da cláusula IN (do ON) é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula IN (do ON),
@@ -541,9 +516,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula IN (do ON).
-
-            Returns:
-                bool: Se a condicional é válida ou não.
             """
             if params:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
@@ -551,17 +523,29 @@ class Parser:
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
                         # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
-                    # Indica que a condicional da cláusula IN (do ON) é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("IN (do ON)")
 
-        def is_not_in_on_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+        def is_not_in_on_valid(params: str) -> None:
+            """Verifica se a condicional da cláusula NOT IN (do ON) é válida.
 
-        def is_where_valid(params: str) -> bool:
+            Junta a condicional coletada do comando SQL, da cláusula NOT IN (do ON),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula NOT IN (do ON).
+            """
+            if params:
+                if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
+                    # Verifica a subconsulta do NOT IN (do ON).
+                    if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
+                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
+                        Parser(subcommand + ";")
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("NOT IN (do ON)")
+
+        def is_where_valid(params: str) -> None:
             """Verifica se a condicional da cláusula WHERE é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula WHERE,
@@ -570,9 +554,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula WHERE.
-
-            Returns:
-                bool: Se a condicional é válidos ou não.
             """
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
@@ -586,12 +567,10 @@ class Parser:
                             self.sql_columns["WHERE"].add(column_name)
                         else:
                             self.sql_columns["WHERE"].add(match[1])
-                    # Indica que a condicional da cláusula ON é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("WHERE")
 
-        def is_and_where_valid(params: str) -> bool:
+        def is_and_where_valid(params: str) -> None:
             """Verifica se a condicional da cláusula AND (do WHERE) é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula AND (do WHERE),
@@ -600,9 +579,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula AND (do WHERE).
-
-            Returns:
-                bool: Se a condicional é válida ou não.
             """
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
@@ -616,12 +592,10 @@ class Parser:
                             self.sql_columns["AND_WHERE"].add(column_name)
                         else:
                             self.sql_columns["AND_WHERE"].add(match[1])
-                    # Indica que a condicional da cláusula AND (do WHERE) é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("AND (do WHERE)")
 
-        def is_in_where_valid(params: str) -> bool:
+        def is_in_where_valid(params: str) -> None:
             """Verifica se a condicional da cláusula IN (do WHERE) é válida.
 
             Junta a condicional coletada do comando SQL, da cláusula IN (do WHERE),
@@ -630,9 +604,6 @@ class Parser:
 
             Args:
                 params (str): A condicional da cláusula IN (do WHERE).
-
-            Returns:
-                bool: Se a condicional é válida ou não.
             """
             if params:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
@@ -640,18 +611,30 @@ class Parser:
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
                         # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
-                    # Indica que a condicional da cláusula IN (do WHERE) é válida.
-                    return True
                 Exceptions.raise_invalid_statement_params_exception(params)
             Exceptions.raise_missing_statement_exception("IN (do WHERE)")
 
-        def is_not_in_where_valid(params: str) -> bool:
-            # TODO: Implementar isso aqui.
-            # TODO: Botar uma exceção aqui em um simples IF.
-            pass
+        def is_not_in_where_valid(params: str) -> None:
+            """Verifica se a condicional da cláusula NOT IN (do WHERE) é válida.
+
+            Junta a condicional coletada do comando SQL, da cláusula NOT IN (do WHERE),
+            e aplica um regex no mesmo, verificando se existe algum 'match' com
+            a condicional.
+
+            Args:
+                params (str): A condicional da cláusula NOT IN (do WHERE).
+            """
+            if params:
+                if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
+                    # Verifica a subconsulta do NOT IN (do WHERE).
+                    if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
+                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
+                        Parser(subcommand + ";")
+                Exceptions.raise_invalid_statement_params_exception(params)
+            Exceptions.raise_missing_statement_exception("NOT IN (do WHERE)")
 
         # Responsável pela chamada de uma função específica para uma cláusula SQL específica.
-        validator: Dict[str, Callable[[str], bool]] = {
+        validator: Dict[str, Callable[[str], None]] = {
             "SELECT": is_select_valid,
             "FROM": is_from_valid,
             "JOIN": is_join_valid,
@@ -666,12 +649,7 @@ class Parser:
         }
 
         # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
-        params_are_valid: bool = True
         for i, params in enumerate(self.sql_params):
-            # Junta os parâmetros de uma cláusula em uma string única.
-            # params_str: str = ' '.join(str(p) for p in params)
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
-            params_are_valid = all([validator[self.sql_tokens[i][0]](params), params_are_valid])
+            validator[self.sql_tokens[i][0]](params)
         # FIXME: Antes de retornar "params_are_valid", verificar se o nome das colunas e tabelas são compatíveis.
-        # FIXME: Nem faz sentido retornar True ou False
-        return params_are_valid
