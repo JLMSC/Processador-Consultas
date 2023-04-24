@@ -372,11 +372,11 @@ class Parser:
             which_suffix: str | None = None
             for i, token in enumerate(self.sql_tokens):
                 command, pos = token
-                if command == "ON":
+                if command.upper() == "ON":
                     which_suffix = "_ON"
-                if command == "WHERE":
+                if command.upper() == "WHERE":
                     which_suffix = "_WHERE"
-                if command in ["AND", "IN", "NOT IN"]:
+                if command.upper() in ["AND", "IN", "NOT IN"]:
                     self.sql_tokens[i] = (f'{command}{which_suffix}', pos)
 
         tokens: str = ' '.join(str(token) for token, _ in self.sql_tokens)
@@ -671,7 +671,7 @@ class Parser:
         # Itera sobre todos os parâmetros coletados do comando SQL, junto com as suas cláusulas.
         for i, params in enumerate(self.sql_params):
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
-            validator[self.sql_tokens[i][0]](params)
+            validator[self.sql_tokens[i][0].upper()](params)
 
     def __validate_table_compatibility(self) -> None:
         """Verifica se todas as tabelas usadas no 
