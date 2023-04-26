@@ -353,7 +353,7 @@ class Parser:
         """
         return [
             self.sql_command[self.sql_tokens[i - 1][1]:self.sql_tokens[i][1]]
-            .replace(self.sql_tokens[i - 1][0], "")
+            .replace(self.sql_tokens[i - 1][0], "", 1)
             .strip()
             for i in range(1, len(self.sql_tokens))
         ]
