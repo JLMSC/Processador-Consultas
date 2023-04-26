@@ -38,7 +38,8 @@ class Parser:
     # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
     __sql_join_params_pattern: str = r'^[a-zA-Z]\w*$'
     # Expressão regular para validação dos parâmetros da cláusula ON do MySQL.
-    __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$'
+    # __sql_on_params_pattern: str = r"(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+(?:\.[0-9]+)?)|('[^']*'))$"
+    __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
     # Expressão regular para validação dos parâmetros da cláusula WHERE do MySQL.
     __sql_where_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
     # Expressão regular para validação dos parâmetros da cláusula IN do MySQL.
