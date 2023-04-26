@@ -53,20 +53,17 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 > Basicamente pega um texto qualquer que deve começar com uma letra, é isso.
 
 #### **Validação dos parâmetros do ON**
-`(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$`
-* `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))` - Captura um grupo no estilo "nomeTabela.nomeColuna" OU "nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
-* `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
-* `$` - Final da linha.
-> Basicamente captura uma condicional.
-
-#### **Validação dos parâmetros do WHERE**
 `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'`
 * `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))` - Captura um grupo no estilo "nomeTabela.nomeColuna" OU "nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
 * `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
 * `([a-zA-Z]\w*)` - Captura um texto alfanumérico qualquer, deve começar com uma letra minúscula ou maiúscula.
 * `([0-9]+)` - Captura um grupo numérico (somente inteiros).
+* `(?:\'([a-zA-Z]\w*\s*)+\'))`- Captura um texto com aspas simples.
 * `$` - Final da linha.
 > Basicamente captura uma condicional.
+
+#### **Validação dos parâmetros do WHERE**
+> Mesma expressão regular utilizada para **validação dos parâmetros do ON**.
 
 #### **Validação dos parâmetros do AND**
 `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))$`
