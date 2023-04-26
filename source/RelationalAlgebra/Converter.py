@@ -18,6 +18,8 @@ class Converter:
 
     # O Parser.
     __parser: Parser
+    # A Álgebra Relaciona de algum comando SQL.
+    __relational_algebra: str
 
     @property
     def parser(self) -> Parser:
@@ -45,6 +47,32 @@ class Converter:
             Parser.
         """
         self.__parser = new_parser
+
+    @property
+    def relational_algebra(self) -> str:
+        """Extrai o conteúdo da variável privada relational_algebra.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento do comando SQL convertido em álgebra relacional,
+        retornando-o seu conteúdo.
+
+        Returns:
+            str: A Álgebra Relacional de algum comando SQL.
+        """
+        return self.__relational_algebra
+
+    @relational_algebra.setter
+    def relational_algebra(self, new_algebra: str) -> None:
+        """Altera o conteúdo da variável privada relational_algebra.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento do comando SQL convertido em álgebra relacional,
+        atribuindo uma nova álgebra relacional para a variável.
+
+        Args:
+            new_algebra (str): Uma nova Álgebra Relacional de algum comando SQL.
+        """
+        self.__relational_algebra = new_algebra
 
     def __init__(self, parser: Parser) -> None:
         """Construtor da classe.
@@ -278,12 +306,12 @@ class Converter:
             "WHERE": convert_where,
         }
 
-        relational_algebra: str = ""
+        self.relational_algebra = ""
         for clause, params in zip(self.parser.sql_tokens, self.parser.sql_params):
             # Ignora cláusulas como o ON, AND, IN e NOT IN. (JOIN e WHERE já fazem isso.)
             if clause[0].upper() in convert_clause.keys():
-                relational_algebra += convert_clause[clause[0].upper()](clause, params)
+                self.relational_algebra += convert_clause[clause[0].upper()](clause, params)
             else:
                 continue
         # Retorna o comando SQL convertido para Álgebra Relacional.
-        return relational_algebra
+        return self.relational_algebra
