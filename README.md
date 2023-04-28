@@ -7,6 +7,21 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 3. Ordem de execução da consulta;
 4. Exibição dos resultados na interface gráfica
 
+### **Conteúdo**
+1. [**As maravilhosas expressões regulares**](#as-maravilhosas-expresões-regulares-utilizadas)
+    1. [**Detectando cláusulas SQL**](#detecção-das-cláusulas-sql)
+    2. [**Verificando a estrutura de um comando MySQL**](#verificação-de-estrutura-de-um-comando-mysql)
+    3. [**Validando os parâmetros do SELECT**](#validação-dos-parâmetros-do-select)
+    4. [**Validando os parâmetros do FROM**](#validação-dos-parâmetros-do-from)
+    5. [**Validando os parâmetros do JOIN**](#validação-dos-parâmetros-do-join)
+    6. [**Validando os parâmetros do ON**](#validação-dos-parâmetros-do-on)
+    7. [**Validando os parâmetros do WHERE**](#validação-dos-parâmetros-do-where)
+    8. [**Validando os parâmetros do AND**](#validação-dos-parâmetros-do-and)
+    9. [**Validando os parâmetros do IN**](#validação-dos-parâmetros-do-in)
+    10. [**Validando os parâmetros do NOT IN**](#validação-dos-parâmetros-do-not-in)
+2. [**Exemplos Disponíveis para testes**](#banco-de-dados-exemplar-fornecido)
+
+
 ##### O Parser está **LIMITADO** para *"Select", "From", "Where", "Join On"* e, também, para os operadores *"=", ">", "<", "<=", ">=", "<>", "And", "In", "Not In", "(", ")"*.
 
 ## **As maravilhosas Expresões Regulares utilizadas.**
@@ -87,3 +102,7 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 
 #### **Validação dos parâmetros do NOT IN**
 > Mesma expressão regular utilizada para **validação dos parâmetros do IN**.
+
+## **Banco de Dados Exemplar fornecido**
+![Banco de Dados Exemplar](./examples_db/example_01.png)
+> Usado no método `Parser.validate_command_in_example_context()`.
