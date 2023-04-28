@@ -474,7 +474,7 @@ class Parser:
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -501,7 +501,7 @@ class Parser:
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -568,7 +568,7 @@ class Parser:
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -595,7 +595,7 @@ class Parser:
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
                     # Captura o nome das tabeleas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -688,7 +688,7 @@ class Parser:
                         continue
                     else:
                         Exceptions.raise_table_mismatch_exception(clause)
-        print("O comando SQL é válido!")
+        print("[OK!] O comando SQL é válido!")
 
     def validate_command_in_example_context(self) -> None:
         """Verifica se todas as tabelas e colunas usadas
@@ -749,4 +749,4 @@ class Parser:
                 # Ignora o '*', pq é todas as colunas de uma tabela ...
                 else:
                     continue
-        print("O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")
+        print("[OK!] O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")
