@@ -529,7 +529,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do IN (do ON).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -550,7 +549,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do NOT IN (do ON).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -625,7 +623,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do IN (do WHERE).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -646,7 +643,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do NOT IN (do WHERE).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -692,3 +688,65 @@ class Parser:
                         continue
                     else:
                         Exceptions.raise_table_mismatch_exception(clause)
+        print("O comando SQL é válido!")
+
+    def validate_command_in_example_context(self) -> None:
+        """Verifica se todas as tabelas e colunas usadas
+        no comando SQL fornecido são compatíveis com o 
+        banco de dados exemplo fornecido.
+        """
+
+        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
+        example: Dict[str, List[str]] = {
+            "usuario": [
+                "idusuario", "nome", "logradouro", "número",
+                "bairro", "cep", "uf", "datanascimento"
+            ],
+            "contas": [
+                "idconta", "descricao", "tipoconta_idtipoconta",
+                "usuario_idusuario", "saldoinicial"
+            ],
+            "movimentacao": [
+                "idmovimentacao", "datamovimentacao", "descricao",
+                "tipomovimento_idtipomovimento", "categoria_idcategoria",
+                "contas_idconta", "valor"
+            ],
+            "tipomovimentacao": [
+                "idtipomovimentacao", "descmovimentacao"
+            ],
+            "categoria": [
+                "idcategoria", "desccategoria"
+            ],
+            "tipoconta": [
+                "idtipoconta", "descrição"
+            ]
+        }
+        # Pega o nome das tabelas do exemplo e adiciona em uma lista.
+        tables_in_example: List[str] = list(example.keys())
+        # Pega o nome das colunas do exemplo e adiciona em uma lista.
+        columns_in_example: List[str] = [
+            column 
+            for columns in example.values() 
+            for column in columns
+        ]
+        # Itera sobre cada tabela e coluna extraída do comando SQL.
+        for clause, tables, columns in zip(self.sql_tables.keys(), self.sql_tables.values(), self.sql_columns.values()):
+            # Deixa todos os nomes de tabelas e colunas em minúsculo.
+            tables = set([table.lower() for table in tables])
+            columns = set([column.lower() for column in columns])
+            # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo. 
+            if tables:
+                if tables.issubset(tables_in_example):
+                    continue
+                else:
+                    Exceptions.raise_table_mismatch_in_example_exception(clause)
+            if columns:
+                if "*" not in columns:
+                    if columns.issubset(columns_in_example):
+                        continue
+                    else:
+                        Exceptions.raise_column_mismatch_in_example_exception(clause)
+                # Ignora o '*', pq é todas as colunas de uma tabela ...
+                else:
+                    continue
+        print("O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")
