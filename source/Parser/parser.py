@@ -38,10 +38,9 @@ class Parser:
     # Expressão regular para validação dos parâmetros da cláusula JOIN do MySQL.
     __sql_join_params_pattern: str = r'^[a-zA-Z]\w*$'
     # Expressão regular para validação dos parâmetros da cláusula ON do MySQL.
-    # __sql_on_params_pattern: str = r"(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+(?:\.[0-9]+)?)|('[^']*'))$"
-    __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
+    __sql_on_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z\d]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
     # Expressão regular para validação dos parâmetros da cláusula WHERE do MySQL.
-    __sql_where_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
+    __sql_where_params_pattern: str = r'(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z\d]\w*\s*)+\'))$|([a-zA-Z]\w*)$'
     # Expressão regular para validação dos parâmetros da cláusula IN do MySQL.
     __sql_in_params_pattern: str = r"\(\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand1>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*(?:,\s*(?:(?:'(?:\\'|[^'])*')|(?:[0-9]+(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?)|(?:true|True|false|False)|(?:null|NULL)|(?P<subcommand2>(?:(select|SELECT)\s+.+\s+(from|FROM)\s+.+)))\s*)*\)"
 
@@ -354,7 +353,7 @@ class Parser:
         """
         return [
             self.sql_command[self.sql_tokens[i - 1][1]:self.sql_tokens[i][1]]
-            .replace(self.sql_tokens[i - 1][0], "")
+            .replace(self.sql_tokens[i - 1][0], "", 1)
             .strip()
             for i in range(1, len(self.sql_tokens))
         ]
@@ -475,7 +474,7 @@ class Parser:
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -502,7 +501,7 @@ class Parser:
             if params:
                 if re.match(self.sql_on_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -530,7 +529,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do IN (do ON).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -551,7 +549,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do NOT IN (do ON).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -571,7 +568,7 @@ class Parser:
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
                     # Captura o nome das tabelas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -598,7 +595,7 @@ class Parser:
             if params:
                 if re.match(self.sql_where_params_pattern, params) is not None:
                     # Captura o nome das tabeleas e colunas usada na condicional e armazena-as.
-                    param_pattern: str = r'(\w+\.\w+)|(\w+)'
+                    param_pattern: str = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
                         if match[0]:
@@ -626,7 +623,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do IN (do WHERE).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -647,7 +643,6 @@ class Parser:
                 if (matches := re.match(self.sql_in_params_pattern, params)) is not None:
                     # Verifica a subconsulta do NOT IN (do WHERE).
                     if subcommand := matches.group("subcommand1") or matches.group("subcommand2"):
-                        # FIXME: Separar o nome da tabela/coluna retornada pela subconsulta???
                         Parser(subcommand + ";")
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
@@ -693,3 +688,65 @@ class Parser:
                         continue
                     else:
                         Exceptions.raise_table_mismatch_exception(clause)
+        print("[OK!] O comando SQL é válido!")
+
+    def validate_command_in_example_context(self) -> None:
+        """Verifica se todas as tabelas e colunas usadas
+        no comando SQL fornecido são compatíveis com o 
+        banco de dados exemplo fornecido.
+        """
+
+        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
+        example: Dict[str, List[str]] = {
+            "usuario": [
+                "idusuario", "nome", "logradouro", "número",
+                "bairro", "cep", "uf", "datanascimento"
+            ],
+            "contas": [
+                "idconta", "descricao", "tipoconta_idtipoconta",
+                "usuario_idusuario", "saldoinicial"
+            ],
+            "movimentacao": [
+                "idmovimentacao", "datamovimentacao", "descricao",
+                "tipomovimento_idtipomovimento", "categoria_idcategoria",
+                "contas_idconta", "valor"
+            ],
+            "tipomovimentacao": [
+                "idtipomovimentacao", "descmovimentacao"
+            ],
+            "categoria": [
+                "idcategoria", "desccategoria"
+            ],
+            "tipoconta": [
+                "idtipoconta", "descrição"
+            ]
+        }
+        # Pega o nome das tabelas do exemplo e adiciona em uma lista.
+        tables_in_example: List[str] = list(example.keys())
+        # Pega o nome das colunas do exemplo e adiciona em uma lista.
+        columns_in_example: List[str] = [
+            column 
+            for columns in example.values() 
+            for column in columns
+        ]
+        # Itera sobre cada tabela e coluna extraída do comando SQL.
+        for clause, tables, columns in zip(self.sql_tables.keys(), self.sql_tables.values(), self.sql_columns.values()):
+            # Deixa todos os nomes de tabelas e colunas em minúsculo.
+            tables = set([table.lower() for table in tables])
+            columns = set([column.lower() for column in columns])
+            # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo. 
+            if tables:
+                if tables.issubset(tables_in_example):
+                    continue
+                else:
+                    Exceptions.raise_table_mismatch_in_example_exception(clause)
+            if columns:
+                if "*" not in columns:
+                    if columns.issubset(columns_in_example):
+                        continue
+                    else:
+                        Exceptions.raise_column_mismatch_in_example_exception(clause)
+                # Ignora o '*', pq é todas as colunas de uma tabela ...
+                else:
+                    continue
+        print("[OK!] O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")

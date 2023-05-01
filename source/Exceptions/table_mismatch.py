@@ -26,3 +26,22 @@ def raise_table_mismatch_exception(clause: str) -> None:
     raise TableMismatchException(
         f"Alguma tabela usada em '{clause}' não existe no contexto do comando SQL fornecido."
     )
+
+def raise_table_mismatch_in_example_exception(clause: str) -> None:
+    """Lança uma exceção quando existe a
+    utilização de tabelas incompatíveis em
+    uma cláusula SQL no contexto de um exemplo
+    já existente.
+
+    Args:
+        clause (str): O nome da cláusula que contém
+        a utilização de tabelas incompatíveis.
+
+    Raises:
+        TableMismatchException: Exceção customizada
+        para alertar a utilização de tabelas icompatíveis
+        em uma cláusula SQL.
+    """
+    raise TableMismatchException(
+        f"Alguma tabela usada em '{clause}' no comando SQL fornecido não existe no contexto do banco de dados exemplar."
+    )

@@ -7,6 +7,21 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 3. Ordem de execução da consulta;
 4. Exibição dos resultados na interface gráfica
 
+### **Conteúdo**
+1. [**As maravilhosas expressões regulares**](#as-maravilhosas-expresões-regulares-utilizadas)
+    1. [**Detectando cláusulas SQL**](#detecção-das-cláusulas-sql)
+    2. [**Verificando a estrutura de um comando MySQL**](#verificação-de-estrutura-de-um-comando-mysql)
+    3. [**Validando os parâmetros do SELECT**](#validação-dos-parâmetros-do-select)
+    4. [**Validando os parâmetros do FROM**](#validação-dos-parâmetros-do-from)
+    5. [**Validando os parâmetros do JOIN**](#validação-dos-parâmetros-do-join)
+    6. [**Validando os parâmetros do ON**](#validação-dos-parâmetros-do-on)
+    7. [**Validando os parâmetros do WHERE**](#validação-dos-parâmetros-do-where)
+    8. [**Validando os parâmetros do AND**](#validação-dos-parâmetros-do-and)
+    9. [**Validando os parâmetros do IN**](#validação-dos-parâmetros-do-in)
+    10. [**Validando os parâmetros do NOT IN**](#validação-dos-parâmetros-do-not-in)
+2. [**Exemplos Disponíveis para testes**](#banco-de-dados-exemplar-fornecido)
+
+
 ##### O Parser está **LIMITADO** para *"Select", "From", "Where", "Join On"* e, também, para os operadores *"=", ">", "<", "<=", ">=", "<>", "And", "In", "Not In", "(", ")"*.
 
 ## **As maravilhosas Expresões Regulares utilizadas.**
@@ -53,12 +68,12 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 > Basicamente pega um texto qualquer que deve começar com uma letra, é isso.
 
 #### **Validação dos parâmetros do ON**
-`(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z]\w*\s*)+\'))$|([a-zA-Z]\w*)$'`
+`(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))\s(=|>|<|<=|>=|<>)\s(?:([a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*)|([0-9]+)|(?:\'([a-zA-Z\d]\w*\s*)+\'))$|([a-zA-Z]\w*)$'`
 * `(?:(^[a-zA-Z]\w*)\.([a-zA-Z]\w*)|([a-zA-Z]\w*))` - Captura um grupo no estilo "nomeTabela.nomeColuna" OU "nomeColuna", devendo começar com uma letra, minúscula ou maiúscula, e seguir com 0 ou mais caracteres alfanuméricos, incluindo o _ (underline).
 * `\s(=|>|<|<=|>=|<>)\s` - Captura um grupo com 1 ou mais espaços em branco no começo e no final do texto, contendo um operador no meio, podendo ser: *=, <, >, <=, >=, <>**.
 * `([a-zA-Z]\w*)` - Captura um texto alfanumérico qualquer, deve começar com uma letra minúscula ou maiúscula.
 * `([0-9]+)` - Captura um grupo numérico (somente inteiros).
-* `(?:\'([a-zA-Z]\w*\s*)+\'))`- Captura um texto com aspas simples.
+* `(?:\'([a-zA-Z\d]\w*\s*)+\'))`- Captura um texto, ou número, com aspas simples.
 * `$` - Final da linha.
 > Basicamente captura uma condicional.
 
@@ -87,3 +102,7 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 
 #### **Validação dos parâmetros do NOT IN**
 > Mesma expressão regular utilizada para **validação dos parâmetros do IN**.
+
+## **Banco de Dados Exemplar fornecido**
+![Banco de Dados Exemplar](./examples_db/example_01.png)
+> Usado no método `Parser.validate_command_in_example_context()`.
