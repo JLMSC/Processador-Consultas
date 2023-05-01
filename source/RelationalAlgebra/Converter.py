@@ -1,5 +1,8 @@
-from functools import reduce
-from typing import Callable, Dict, Tuple
+"""Arquivo responsável pela conversão de um comando
+SQL para sua expressão em Álgebra Relacional já otimizada."""
+
+import re
+from typing import Dict, List, Set
 
 from Parser.parser import Parser
 
@@ -20,6 +23,8 @@ class Converter:
     __parser: Parser
     # A Álgebra Relaciona de algum comando SQL.
     __relational_algebra: str
+    # Informações sobre as tabelas e colunas do comando SQL.
+    __command_info: Dict[str, Dict[str, str]]
 
     @property
     def parser(self) -> Parser:
@@ -74,244 +79,181 @@ class Converter:
         """
         self.__relational_algebra = new_algebra
 
-    def __init__(self, parser: Parser) -> None:
+    @property
+    def command_info(self) -> Dict[str, Dict[str, str]]:
+        """Extrai o conteúdo da variável privada command_info.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento de informações sobre uma determinada
+        tabela de um comando SQL, otimizando-o sua representação
+        em Álgebra Relacional.
+
+        Returns:
+            Dict[str, Dict[str, str]]: As tabelas usadas no comando
+            SQL algumas informações otimizadas para a representação
+            em Álgebra Relacional.
+        """
+        return self.__command_info
+
+    @command_info.setter
+    def command_info(self, new_info: Dict[str, Dict[str, str]]) -> None:
+        """Altera o conteúdo da variável privada command_info.
+
+        Acessa a variável privada da classe, responsável pelo
+        armazenamento de informações sobre uma determinada tabela
+        de um comando SQL, atribuindo novas informações para a
+        variável.
+
+        Args:
+            new_info (Dict[str, str]): Um novo dicionário com
+            novas informações para a variável.
+        """
+        self.__command_info = new_info
+
+    def __init__(self, parser: Parser | type) -> None:
         """Construtor da classe.
 
         Atribui valores a algumas variáveis e realiza
         a conversão de SQL para Álgebra Relaciona.
 
         Args:
-            parser (Parser): Uma instância da classe Parser.
+            parser (Parser | type): Uma instância da classe Parser.
         """
         if isinstance(parser, Parser):
             self.parser = parser
-            self.__convert()
+            self.command_info = {}
+            self.__convert_from_example()
         else:
             Exceptions.raise_invalid_parser_exception("Converter.py (__init__)")
 
-    def __convert(self) -> str:
+    def __convert_from_example(self) -> str:
+        """Converte um comando SQL (relacionado ao Banco de Dados Exemplar) para
+        a sua representação em Álgebra Relacional.
 
-        # TODO: Adicionar em na árvore.
-        def convert_select(clause: Tuple[str, int], params: str) -> str:
-            """Converte o comando SELECT para Álgebra Relacional.
+        Itera sobre nome de tabelas e colunas, separando conforme necessário,
+        para que, durante a criação da Álgebra Relacional, o mesmo já esteja
+        otimizado.
+        Etapas da otimização:
+        a. Aplicar primeiro as operações que reduzem o tamanho dos resultados
+        intermediários. i. Operações de seleção; ii. Operações de projeção.
+        b. Aplicar primeiro as operações de seleção e de junção mais restritivas.
+        i. Reordenar os nós folha da árvore de consulta; ii. Evitar a operação
+        de produto cartesiano; iii. Ajustar o restante da árvore de forma apropriada.
 
-            Simplesmente retorna 'π (projeção)' junto com os
-            parâmetros do SELECT.
-            Caso o parâmetro seja '*', uma string vazia será retornada.
+        Returns:
+            str: A Álgebra Relacional do comando SQL.
+        """
 
-            Args:
-                clause (Tuple[str, int]): Uma tupla, contendo a cláusula SELECT
-                e a posição da cláusula no comando SQL.
-                params (str): Os parâmetros do SELECT.
+        # TODO: Doc
+        def search_table_in_example_db(target_column: str) -> str | None:
+            # Itera sobre as tabelas e colunas do banco de dados exemplar.
+            for example_table, example_columns in example.items():
+                # Verifica se a tabela existe no contexto do comando SQL fornecido.
+                if example_table in self.command_info.keys():
+                    # Retorna o nome da tabela, caso encontre.
+                    if target_column in example_columns:
+                        return target_column
+            return None
 
-            Returns:
-                str: O comando SELECT convertido em Álgebra Relacional.
-            """
-            #  π (projeção) seleciona colunas e não linhas!
-            return "" if params == "*" else f"π {params} "
-
-        # TODO: Adicionar em na árvore.
-        def convert_from(clause: Tuple[str, int], params: str) -> str:
-            """Converte o comando FROM para Álgebra Relacional.
-
-            Simplesmente retorna uma string no formato '(tabela1 x tabela2 x ...)',
-            em que as tabelas são os parâmetros do FROM.
-            Caso existe somente uma tabela, '(tabela)' é retornado.
-
-            Args:
-                clause (Tuple[str, int]): Uma tupla, contendo a cláusula FROM
-                e a posição da cláusula no comando SQL.
-                params (str): Os parâmetros do FROM.
-
-            Returns:
-                str: O comando FROM convertido para Álgebra Relacional.
-            """
-
-            def cross_join(*tables: str) -> str:
-                """Recebe duas tabelas e junta-as no formato '(tabela1 x tabela2 x ...)'.
-
-                Args:
-                    *tables (str): Os nomes das tabelas a serem unidas.
-
-                Returns:
-                    str: As tabelas unidas no formato '(tabela1 x tabela2 x ...)'.
-                """
-                return reduce(lambda table1, table2: f"({table1} ⨝ {table2})", tables)
-            
-            # ⨝ (produto cartesiano)!
-            return f"{cross_join(*params.split(', '))} " if "," in params else f"({params}) "
-
-        # FIXME: Adicionar cada um em um nó de uma árvore.
-        def convert_join(clause: Tuple[str, int], params: str) -> str:
-            """Converte o comando JOIN em Álgebra Relacional.
-
-            Simplesmente retorna uma string, em que cada parâmetro extra,
-            por exemplo: ON, AND, IN e NOT IN, são convertidos internamente,
-            também, em Álgebra Relacional.
-
-            Args:
-                clause (Tuple[str, int]): Uma tupla, contendo a cláusula JOIN
-                e a posição da cláusula no comando SQL.
-                params (str): Os parâmetros do JOIN.
-
-            Returns:
-                str: O comando JOIN convertido para Álgebra Relacional.
-            """
-
-            def convert_on(params: str) -> str:
-                """Converte o comando ON em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do ON.
-
-                Returns:
-                    str: O comando ON convertido para Álgebra Relacional.
-                """
-                # σ (seleção) seleciona linhas e não colunas!
-                return f"(σ {params} "
-
-            def convert_on_and(params: str) -> str:
-                """Converte o operador AND (do JOIN ON) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do AND.
-
-                Returns:
-                    str: O operador AND convertido para Álgebra Relacional.
-                """
-                # ∧ (AND)!
-                return f"∧ {params} "
-
-            def convert_on_in(params: str) -> str:
-                """Converte o operador IN (do JOIN ON) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do IN.
-
-                Returns:
-                    str: O operador IN convertido para Álgebra Relacional.
-                """
-                # ∈ (IN)!
-                return f"∈ {params} "
-
-            def convert_on_not_in(params: str) -> str:
-                """Converte o operador NOT IN (do JOIN ON) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do NOT IN.
-
-                Returns:
-                    str: O operador NOT IN convertido para Álgebra Relacional.
-                """
-                # ¬ ∈ (NOT IN)!
-                return f"¬ (∈ {params}) "
-            
-            convert_accepted_clause: Dict[str, Callable[[str], str]] = {
-                "ON": convert_on,
-                "AND_ON": convert_on_and,
-                "IN_ON": convert_on_in,
-                "NOT IN_ON": convert_on_not_in
-            }
-
-            # Índice do comando JOIN em 'parser.sql_tokens'.
-            command_index: int = self.parser.sql_tokens.index(clause) + 1
-            relational_algebra: str = ""
-            # Converte os parâmetros extras do JOIN em algebra relacional, se tiver um que não é do JOIN, retorna 'relational_algebra'.
-            for other_clause, other_params in zip(self.parser.sql_tokens[command_index::], self.parser.sql_params[command_index::]):
-                (token, _) = other_clause
-                if token.upper() in convert_accepted_clause.keys():
-                    relational_algebra += convert_accepted_clause[token.upper()](other_params)
-                else:
-                    break
-            # Adiciona a tabela do JOIN ao final da expressão, adiciona também os ')' faltando.
-            return f"{relational_algebra}({params}){')' * relational_algebra.count('(')} "
-
-        # FIXME: Adicionar cada um em um nó de uma árvore.
-        def convert_where(clause: Tuple[str, int], params: str) -> str:
-            """Converte o comando WHERE em Álgebra Relacional.
-
-            Simplesmente retorna uma string, em que cada parâmetro extra,
-            por exemplo: AND, IN e NOT IN, são convertidos internamente,
-            também, em Álgebra Relacional.
-
-            Args:
-                clause (Tuple[str, int]): Uma tupla, contendo a cláusula WHERE
-                e a posição da cláusula no comando SQL.
-                params (str): Os parâmetros do WHERE.
-
-            Returns:
-                str: O comando WHERE convertido para Álgebra Relacional.
-            """
-
-            def convert_where_and(params: str) -> str:
-                """Converte o operador AND (do WHERE) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do AND.
-
-                Returns:
-                    str: O operador AND convertido para Álgebra Relacional.
-                """
-                # ∧ (AND)!
-                return f"∧ {params} "
-
-            def convert_where_in(params: str) -> str:
-                """Converte o operador IN (do WHERE) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do IN.
-
-                Returns:
-                    str: O operador IN convertido para Álgebra Relacional.
-                """
-                # ∈ (IN)!
-                return f"∈ {params} "
-
-            def convert_where_not_in(params: str) -> str:
-                """Converte o operador NOT IN (do WHERE) em Álgebra Relacional.
-
-                Args:
-                    params (str): Os parâmetros do NOT IN.
-
-                Returns:
-                    str: O operador NOT IN convertido para Álgebra Relacional.
-                """
-                # ¬ ∈ (NOT IN)!
-                return f"¬ (∈ {params}) "
-
-            convert_accepted_clause: Dict[str, Callable[[str], str]] = {
-                "AND_WHERE": convert_where_and,
-                "IN_WHERE": convert_where_in,
-                "NOT IN_WHERE": convert_where_not_in
-            }
-
-            # Índice do comando WHERE em 'parser.sql_tokens'.
-            command_index: int = self.parser.sql_tokens.index(clause) + 1
-            relational_algebra: str = ""
-            # Converte os parâmetros extras do WHERE em algebra relacional, se tiver um que não é do WHERE, retorna 'relational_algebra'.
-            for other_clause, other_params in zip(self.parser.sql_tokens[command_index::], self.parser.sql_params[command_index::]):
-                (token, _) = other_clause
-                if token.upper() in convert_accepted_clause.keys():
-                    relational_algebra += convert_accepted_clause[token.upper()](other_params)
-                else:
-                    break
-            # Adiciona a tabela do WHERE ao final da expressão, adiciona também os ')' faltando.
-            # Estou assumindo que 'sql_params[1]' será sempre o do FROM.
-            return f"(σ {params} {relational_algebra}({self.parser.sql_params[1]}){')' * relational_algebra.count('(')}"
-
-        convert_clause: Dict[str, Callable[[Tuple[str, int], str], str]] = {
-            "SELECT": convert_select,
-            "FROM": convert_from,
-            "JOIN": convert_join,
-            "WHERE": convert_where,
+        # TODO: variável da classe? ou botar no parser?
+        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
+        example: Dict[str, List[str]] = {
+            "usuario": [
+                "idusuario", "nome", "logradouro", "número",
+                "bairro", "cep", "uf", "datanascimento"
+            ],
+            "contas": [
+                "idconta", "descricao", "tipoconta_idtipoconta",
+                "usuario_idusuario", "saldoinicial"
+            ],
+            "movimentacao": [
+                "idmovimentacao", "datamovimentacao", "descricao",
+                "tipomovimento_idtipomovimento", "categoria_idcategoria",
+                "contas_idconta", "valor"
+            ],
+            "tipomovimentacao": [
+                "idtipomovimentacao", "descmovimentacao"
+            ],
+            "categoria": [
+                "idcategoria", "desccategoria"
+            ],
+            "tipoconta": [
+                "idtipoconta", "descrição"
+            ]
         }
 
+        # Cria um dicionário para a Álgebra Relacional do comando SQL,
+        # incluindo informações já otimizadas conforme descrito previamente.
+        sql_context_tables: Set[str] = self.parser.sql_tables['FROM'].union(self.parser.sql_tables['JOIN'])
+        for table in sql_context_tables:
+            self.command_info.update({
+                table: {
+                    "projection": "",
+                    "restriction": "",
+                    "junction": ""
+                }
+            })
+
+        # Itera sobre os tokens do comando SQL e as colunas usadas no comando.
+        for token, columns in self.parser.sql_columns.items():
+            # Adiciona as colunas à 'Projeção' da Álgebra Relacional do comando SQL.
+            if token in ["SELECT", "ON", "WHERE"]:
+                for column_name in columns:
+                    # Suporte para '[a-zA-Z]'
+                    column_name = column_name.lower()
+                    # Pega o nome da tabela correspondente a cada coluna, iterada, do comando SQL.
+                    target_table = search_table_in_example_db(column_name)
+                    # Verifica se a tabela foi encontrada.
+                    if target_table is not None:
+                        # Ignora duplicatas.
+                        if column_name not in self.command_info[target_table]['projection']:
+                            self.command_info[target_table]['projection'] += f"{column_name} "
+                            break
+
+        # FIXME: Refatorar
+        # Itera sobre as cláusulas do comando SQL e seus parâmetros.
+        for token_info, params in zip(self.parser.sql_tokens, self.parser.sql_params):
+            # Extrai o nóme da cláusula, ignorando a posição e suportano '[a-zA-Z]'.
+            (token, _) = token_info
+            token = token.upper()
+            # FIXME: Refatorar os IF/ELSE token.endswith(...)
+            # Adiciona as restrições da 'Junção' entre duas tabelas da Álgebra Relacional do comando SQL.
+            if token.endswith('ON'):
+                # Usa regex para identificar os parâmetros do 'ON' que possuem
+                # o nome da tabela explicito ou não.
+                if (matches := re.match(r'(\w+\.\w+)|(\w+|\*)', params, re.IGNORECASE)) is not None:
+                    match = matches.groups()
+                    if match[0]:
+                        self.command_info[match[0].split(".")[0]]['junction'] += f"{params} "
+                    # Procura pela tabela correspondente.
+                    else:
+                        for example_table, example_columns in example.items():
+                            if example_table in self.command_info.keys():
+                                if match[1] not in self.command_info[example_table]['junction']:
+                                    if match[1] in example_columns:
+                                        self.command_info[example_table]['junction'] += f"{params} "
+                                        break
+            # Adiciona as restirções da 'Seleção' na Álgebra Relacional do comando SQL.
+            elif token.endswith('WHERE'):
+                # Usa regex para identificar os parâmetros do 'WHERE' que possuem
+                # o nome da tabela explicito ou não.
+                regex_where = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
+                if (matches := re.match(regex_where, params, re.IGNORECASE)) is not None:
+                    match = matches.groups()
+                    if match[0]:
+                        self.command_info[match[0].split(".")[0]]['restriction'] += f"{params} "
+                    # Procura pela tabela correspondente.
+                    else:
+                        for example_table, example_columns in example.items():
+                            if example_table in self.command_info.keys():
+                                if match[1] not in self.command_info[example_table]['restriction']:
+                                    if match[1] in example_columns:
+                                        self.command_info[example_table]['restriction'] += f"{token.replace('_WHERE', '')} {params} " if token.endswith("_WHERE") else f"{params} "
+                                        break
+
+        # TODO: Montar a Álgebra Relacional.
+        # TODO: Montar uma árvore com base em 'self.command_info'
+        # TODO: Retornar a Álgebra Relacional.
+
         self.relational_algebra = ""
-        for clause, params in zip(self.parser.sql_tokens, self.parser.sql_params):
-            # Ignora cláusulas como o ON, AND, IN e NOT IN. (JOIN e WHERE já fazem isso.)
-            if clause[0].upper() in convert_clause.keys():
-                self.relational_algebra += convert_clause[clause[0].upper()](clause, params)
-            else:
-                continue
-        # Retorna o comando SQL convertido para Álgebra Relacional.
         return self.relational_algebra
