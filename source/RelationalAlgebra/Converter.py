@@ -2,12 +2,11 @@
 SQL para sua expressão em Álgebra Relacional já otimizada."""
 
 import re
-from typing import Dict, List, Set
-
-from Parser.parser import Parser
+from typing import Dict, List, Set, Callable
 
 # pylint: disable=import-error
 import Exceptions
+from Parser.parser import Parser
 
 class Converter:
     """Classe responsável pela conversão de um comando SQL
@@ -122,11 +121,12 @@ class Converter:
         if isinstance(parser, Parser):
             self.parser = parser
             self.command_info = {}
-            self.__convert_from_example()
         else:
             Exceptions.raise_invalid_parser_exception("Converter.py (__init__)")
 
-    def __convert_from_example(self) -> str:
+
+    # FIXME: Rever os comentários ... (Tem muito comentário)
+    def convert_in_database_context(self, database: Dict[str, List[str]]) -> str:
         """Converte um comando SQL (relacionado ao Banco de Dados Exemplar) para
         a sua representação em Álgebra Relacional.
 
@@ -140,50 +140,91 @@ class Converter:
         i. Reordenar os nós folha da árvore de consulta; ii. Evitar a operação
         de produto cartesiano; iii. Ajustar o restante da árvore de forma apropriada.
 
+        Args:
+            database (Dict[str, List[str]]): Um dicionário contendo o nome
+            das tabelas (chaves) e uma lista com as colunas da tabela (valor).
+
+        Veja '/source/Examples' para mais detalhes sobre a estrutura de 'database'.
+
         Returns:
             str: A Álgebra Relacional do comando SQL.
         """
 
         # TODO: Doc
-        def search_table_in_example_db(target_column: str) -> str | None:
+        # TODO: Da pra melhorar o código...
+        def convert_on2ra(token: str) -> None:
+            # Usa regex para identificar os parâmetros do 'ON' que possuem
+            # o nome da tabela explicito ou não.
+            regex_on = r'(\w+\.\w+)|(\w+|\*)'
+            if (matches := re.match(regex_on, params, re.IGNORECASE)) is not None:
+                match = matches.groups()
+                # Caso o nome da tabela esteja explícito, converte para Álgebra Relacional.
+                if match[0]:
+                    self.command_info[match[0].split(".")[0]]['junction'] += f"{params} "
+                # Procura pela tabela correspondente.
+                else:
+                    # Pega o nome da tabela correspondente a cada coluna, iterada, do comando SQL.
+                    target_table = search_table_in_database(match[1].lower())
+                    # Verifica se a tabela foi encontrada.
+                    if target_table is not None: # FIXME: Exceção coluna não encontrada no banco de dados exemplar fornecido.
+                        # Ignora duplicatas.
+                        if column_name not in self.command_info[target_table]['junction']:
+                            if token.endswith("_ON"):
+                                self.command_info[target_table]['junction'] += f"{params} {token.replace('_ON', '', 1)}"
+                            else:
+                                self.command_info[target_table]['junction'] += f"{params} "
+
+        # TODO: Doc
+        # TODO: Da pra melhorar o código...
+        def convert_where2ra(token: str) -> None:
+            # Usa regex para identificar os parâmetros do 'WHERE' que possuem o nome da tabela explicito ou não.
+            regex_where = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
+            if (matches := re.match(regex_where, params, re.IGNORECASE)) is not None:
+                match = matches.groups()
+                # Caso o nome da tabela esteja explícito, converte para Álgebra Relacional.
+                if match[0]:
+                    self.command_info[match[0].split(".")[0]]['restriction'] += f"{params} "
+                # Procura pela tabela correspondente.
+                else:
+                    # Pega o nome da tabela correspondente a cada coluna, iterada, do comando SQL.
+                    target_table = search_table_in_database(match[1].lower())
+                    # Verifica se a tabela foi encontrada.
+                    if target_table is not None: # FIXME: Exceção coluna não encontrada no banco de dados exemplar fornecido.
+                        # Ignora duplicatas.
+                        if column_name not in self.command_info[target_table]['restriction']:
+                            if token.endswith("_WHERE"):
+                                self.command_info[target_table]['restriction'] += f"{params} {token.replace('_WHERE', '', 1)} "
+                            else:
+                                self.command_info[target_table]['restriction'] += f"{params} "
+
+        def search_table_in_database(target_column: str) -> str | None:
+            """Procura pelo nome da tabela correspondente de uma coluna.
+
+            Itera sobre todas as tabelas de 'database' e verifica se a
+            coluna a qual não possui o nome da tabela explicita, está
+            incluída na lista.
+
+            'database' é a mesma variável usada em 'convert_in_database_context'.
+
+            Args:
+                target_column (str): A coluna pela qual se deseja saber
+                o nome da tabela correspondente.
+
+            Returns:
+                str | None: Retorna o nome da tabela, caso seja encontrada,
+                ou 'None' caso contrário.
+            """
             # Itera sobre as tabelas e colunas do banco de dados exemplar.
-            for example_table, example_columns in example.items():
-                # Verifica se a tabela existe no contexto do comando SQL fornecido.
+            for example_table, example_columns in database.items():
+                # Procura somente nas tabelas que foram usadas pelo comando SQL.
                 if example_table in self.command_info.keys():
-                    # Retorna o nome da tabela, caso encontre.
+                    # Retorna o nome da tabela, caso encontre a coluna correspondente..
                     if target_column in example_columns:
-                        return target_column
+                        return example_table
             return None
 
-        # TODO: variável da classe? ou botar no parser?
-        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
-        example: Dict[str, List[str]] = {
-            "usuario": [
-                "idusuario", "nome", "logradouro", "número",
-                "bairro", "cep", "uf", "datanascimento"
-            ],
-            "contas": [
-                "idconta", "descricao", "tipoconta_idtipoconta",
-                "usuario_idusuario", "saldoinicial"
-            ],
-            "movimentacao": [
-                "idmovimentacao", "datamovimentacao", "descricao",
-                "tipomovimento_idtipomovimento", "categoria_idcategoria",
-                "contas_idconta", "valor"
-            ],
-            "tipomovimentacao": [
-                "idtipomovimentacao", "descmovimentacao"
-            ],
-            "categoria": [
-                "idcategoria", "desccategoria"
-            ],
-            "tipoconta": [
-                "idtipoconta", "descrição"
-            ]
-        }
-
-        # Cria um dicionário para a Álgebra Relacional do comando SQL,
-        # incluindo informações já otimizadas conforme descrito previamente.
+        # Cria um dicionário para a Álgebra Relacional do comando SQL, incluindo informações já otimizadas 
+        # conforme descrito previamente.
         sql_context_tables: Set[str] = self.parser.sql_tables['FROM'].union(self.parser.sql_tables['JOIN'])
         for table in sql_context_tables:
             self.command_info.update({
@@ -194,62 +235,30 @@ class Converter:
                 }
             })
 
-        # Itera sobre os tokens do comando SQL e as colunas usadas no comando.
+        # TODO: Função separada?
+        # Adiciona as colunas usadas de cada tabela a sua 'Projeção' da Álgebra Relacional.
         for token, columns in self.parser.sql_columns.items():
-            # Adiciona as colunas à 'Projeção' da Álgebra Relacional do comando SQL.
             if token in ["SELECT", "ON", "WHERE"]:
                 for column_name in columns:
-                    # Suporte para '[a-zA-Z]'
                     column_name = column_name.lower()
-                    # Pega o nome da tabela correspondente a cada coluna, iterada, do comando SQL.
-                    target_table = search_table_in_example_db(column_name)
-                    # Verifica se a tabela foi encontrada.
-                    if target_table is not None:
-                        # Ignora duplicatas.
+                    target_table = search_table_in_database(column_name)
+                    if target_table is not None: # FIXME: Exceção coluna não encontrada no banco de dados exemplar fornecido.
+                        # Adiciona o nome da coluna em 'Projeção' caso o nome da coluna não exista ainda.
                         if column_name not in self.command_info[target_table]['projection']:
                             self.command_info[target_table]['projection'] += f"{column_name} "
-                            break
 
-        # FIXME: Refatorar
+        # TODO: Função separada?
         # Itera sobre as cláusulas do comando SQL e seus parâmetros.
         for token_info, params in zip(self.parser.sql_tokens, self.parser.sql_params):
             # Extrai o nóme da cláusula, ignorando a posição e suportano '[a-zA-Z]'.
             (token, _) = token_info
             token = token.upper()
-            # FIXME: Refatorar os IF/ELSE token.endswith(...)
             # Adiciona as restrições da 'Junção' entre duas tabelas da Álgebra Relacional do comando SQL.
             if token.endswith('ON'):
-                # Usa regex para identificar os parâmetros do 'ON' que possuem
-                # o nome da tabela explicito ou não.
-                if (matches := re.match(r'(\w+\.\w+)|(\w+|\*)', params, re.IGNORECASE)) is not None:
-                    match = matches.groups()
-                    if match[0]:
-                        self.command_info[match[0].split(".")[0]]['junction'] += f"{params} "
-                    # Procura pela tabela correspondente.
-                    else:
-                        for example_table, example_columns in example.items():
-                            if example_table in self.command_info.keys():
-                                if match[1] not in self.command_info[example_table]['junction']:
-                                    if match[1] in example_columns:
-                                        self.command_info[example_table]['junction'] += f"{params} "
-                                        break
+                convert_on2ra(token)
             # Adiciona as restirções da 'Seleção' na Álgebra Relacional do comando SQL.
             elif token.endswith('WHERE'):
-                # Usa regex para identificar os parâmetros do 'WHERE' que possuem
-                # o nome da tabela explicito ou não.
-                regex_where = r'\b(?<![\'"])([a-zA-Z]\w+\.[a-zA-Z]\w+)(?![\'"])\b|\b(?<![\'"])([a-zA-Z]\w+)(?![\'"])\b'
-                if (matches := re.match(regex_where, params, re.IGNORECASE)) is not None:
-                    match = matches.groups()
-                    if match[0]:
-                        self.command_info[match[0].split(".")[0]]['restriction'] += f"{params} "
-                    # Procura pela tabela correspondente.
-                    else:
-                        for example_table, example_columns in example.items():
-                            if example_table in self.command_info.keys():
-                                if match[1] not in self.command_info[example_table]['restriction']:
-                                    if match[1] in example_columns:
-                                        self.command_info[example_table]['restriction'] += f"{token.replace('_WHERE', '')} {params} " if token.endswith("_WHERE") else f"{params} "
-                                        break
+                convert_where2ra(token)
 
         # TODO: Montar a Álgebra Relacional.
         # TODO: Montar uma árvore com base em 'self.command_info'
