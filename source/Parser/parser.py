@@ -27,7 +27,6 @@ class Parser:
     # As colunas usadas no comando SQL.
     __sql_columns: Dict[str, Set[str]]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
-    # __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)'
     __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b(?!([^()]*\)))|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
     __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s((and|in|not\sin)\s)*?|where\s((and|in|not\sin)\s)*?)*;$'
@@ -67,7 +66,6 @@ class Parser:
             for key in ["SELECT", "FROM", "JOIN", "ON", "AND_ON", "IN_ON", "NOT IN_ON", "WHERE", "AND_WHERE", "IN_WHERE", "NOT IN_WHERE"]
         }
         self.__validate_params()
-        self.__validate_table_compatibility()
 
     @property
     def sql_command(self) -> str:
@@ -669,66 +667,26 @@ class Parser:
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
             validator[self.sql_tokens[i][0].upper()](params)
 
-    def __validate_table_compatibility(self) -> None:
-        """Verifica se todas as tabelas usadas no 
-        comando SQL fornecido são compatíveis.
-        
-        Itera sobre as tabelas de cada cláusula registrada,
-        verificando se todas possuem alguma relação com as
-        tabelas do FROM e JOIN.
+    def check_database_compatibility(self, database: Dict[str, List[str]]) -> None:
+        """Verifica se todas as tabelas e colunas usadas no comando SQL 
+        fornecido são compatíveis com o banco de dados exemplar fornecido.
+
+        Args:
+            database (Dict[str, List[str]]): Um dicionário contendo o nome
+            das tabelas (chaves) e uma lista com as colunas da tabela (valor).
+
+        Veja '/source/Examples' para mais detalhes sobre a estrutura de 'database'.
         """
 
-        # Separa as tabelas válidas (aquelas que são adicionadas por cláusulas).
-        valid_tables: Set[str] = self.sql_tables['FROM'].union(self.sql_tables['JOIN'])
-        for clause, tables in self.sql_tables.items():
-            # Ignora as cláusulas do FROM e JOIN (eles adicionam tabelas).
-            if clause not in ["FROM", "JOIN"]:
-                if tables:
-                    if tables.issubset(valid_tables):
-                        continue
-                    else:
-                        Exceptions.raise_table_mismatch_exception(clause)
-        print("[OK!] O comando SQL é válido!")
-
-    def validate_command_in_example_context(self) -> None:
-        """Verifica se todas as tabelas e colunas usadas
-        no comando SQL fornecido são compatíveis com o 
-        banco de dados exemplo fornecido.
-        """
-
-        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
-        example: Dict[str, List[str]] = {
-            "usuario": [
-                "idusuario", "nome", "logradouro", "número",
-                "bairro", "cep", "uf", "datanascimento"
-            ],
-            "contas": [
-                "idconta", "descricao", "tipoconta_idtipoconta",
-                "usuario_idusuario", "saldoinicial"
-            ],
-            "movimentacao": [
-                "idmovimentacao", "datamovimentacao", "descricao",
-                "tipomovimento_idtipomovimento", "categoria_idcategoria",
-                "contas_idconta", "valor"
-            ],
-            "tipomovimentacao": [
-                "idtipomovimentacao", "descmovimentacao"
-            ],
-            "categoria": [
-                "idcategoria", "desccategoria"
-            ],
-            "tipoconta": [
-                "idtipoconta", "descrição"
-            ]
-        }
         # Pega o nome das tabelas do exemplo e adiciona em uma lista.
-        tables_in_example: List[str] = list(example.keys())
+        tables_in_database: List[str] = list(database.keys())
         # Pega o nome das colunas do exemplo e adiciona em uma lista.
-        columns_in_example: List[str] = [
+        columns_in_database: List[str] = [
             column 
-            for columns in example.values() 
+            for columns in database.values() 
             for column in columns
         ]
+
         # Itera sobre cada tabela e coluna extraída do comando SQL.
         for clause, tables, columns in zip(self.sql_tables.keys(), self.sql_tables.values(), self.sql_columns.values()):
             # Deixa todos os nomes de tabelas e colunas em minúsculo.
@@ -736,17 +694,19 @@ class Parser:
             columns = set([column.lower() for column in columns])
             # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo. 
             if tables:
-                if tables.issubset(tables_in_example):
+                if tables.issubset(tables_in_database):
                     continue
                 else:
                     Exceptions.raise_table_mismatch_in_example_exception(clause)
             if columns:
                 if "*" not in columns:
-                    if columns.issubset(columns_in_example):
+                    if columns.issubset(columns_in_database):
                         continue
                     else:
                         Exceptions.raise_column_mismatch_in_example_exception(clause)
                 # Ignora o '*', pq é todas as colunas de uma tabela ...
                 else:
                     continue
+
+        print("[OK!] O comando SQL fornecido é válido.")
         print("[OK!] O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")
