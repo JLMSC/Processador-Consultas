@@ -157,13 +157,14 @@ class Converter:
             for token, columns in self.parser.sql_columns.items():
                 if token in ["SELECT", "ON", "WHERE"]:
                     for column_name in columns:
-                        column_name = column_name.lower()
-                        target_table: str | None = search_table_in_database(column_name)
-                        if target_table is not None:
-                            if column_name not in self.command_info[target_table]['projection']:
-                                self.command_info[target_table]['projection'] += f"{column_name} "
-                        else:
-                            Exceptions.raise_column_mismatch_in_example_exception(column_name)
+                        if column_name != "*":
+                            column_name = column_name.lower()
+                            target_table: str | None = search_table_in_database(column_name)
+                            if target_table is not None:
+                                if column_name not in self.command_info[target_table]['projection']:
+                                    self.command_info[target_table]['projection'] += f"{column_name} "
+                            else:
+                                Exceptions.raise_column_mismatch_in_example_exception(column_name)
 
         def convert_on2ra() -> None:
             """Converte os parâmetros do ON, do JOIN, para Álgebra Relacional.
@@ -200,13 +201,14 @@ class Converter:
                         # Procura pela tabela.
                         else:
                             column_name: str = match[1].lower()
-                            target_table: str = search_table_in_database(column_name)
-                            # Ignora duplicatas.
-                            if column_name not in self.command_info[target_table]['restriction']:
-                                if token.endswith("_WHERE"):
-                                    self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params} "
-                                else:
-                                    self.command_info[target_table]['restriction'] += f"{params} "
+                            if column_name != "*":
+                                target_table: str = search_table_in_database(column_name)
+                                # Ignora duplicatas.
+                                if column_name not in self.command_info[target_table]['restriction']:
+                                    if token.endswith("_WHERE"):
+                                        self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params} "
+                                    else:
+                                        self.command_info[target_table]['restriction'] += f"{params} "
 
         def search_table_in_database(target_column: str) -> str:
             """Procura pelo nome da tabela correspondente de uma coluna.
@@ -305,7 +307,9 @@ class Converter:
         convert_where2ra()
 
         # Estrutura a Álgebra Relacional.
-        self.relational_algebra = mount_ra()
+        select_params: str = self.parser.sql_params[0]
+        select2ra: str = f"π {select_params}" if select_params != '*' else ""
+        self.relational_algebra = f"{select2ra} {mount_ra()}".strip()
 
         # TODO: Montar uma árvore com base em 'self.command_info'
 
