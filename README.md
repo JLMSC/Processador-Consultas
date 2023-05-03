@@ -19,7 +19,7 @@ Implementação de um **Processador de Consultas** em **Python 3**.
     8. [**Validando os parâmetros do AND**](#validação-dos-parâmetros-do-and)
     9. [**Validando os parâmetros do IN**](#validação-dos-parâmetros-do-in)
     10. [**Validando os parâmetros do NOT IN**](#validação-dos-parâmetros-do-not-in)
-2. [**Exemplos Disponíveis para testes**](#banco-de-dados-exemplar-fornecido)
+2. [**Exemplos Disponíveis para testes**](#exemplares-de-banco-de-dados-disponíveis)
 
 
 ##### O Parser está **LIMITADO** para *"Select", "From", "Where", "Join On"* e, também, para os operadores *"=", ">", "<", "<=", ">=", "<>", "And", "In", "Not In", "(", ")"*.
@@ -103,6 +103,5 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 #### **Validação dos parâmetros do NOT IN**
 > Mesma expressão regular utilizada para **validação dos parâmetros do IN**.
 
-## **Banco de Dados Exemplar fornecido**
-![Banco de Dados Exemplar](./examples_db/example_01.png)
-> Usado no método `Parser.validate_command_in_example_context()`.
+## **Exemplares de Banco de Dados disponíveis**
+> Os bancos de dados exemplares, disponíveis para testes e/ou uso estão presentes em ***`/source/Examples/`***

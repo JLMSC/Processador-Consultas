@@ -3,7 +3,7 @@ um comando SQL, bem como as cláusulas utilizadas, a sua
 estrutura e, também, os parâmetros."""
 
 import re
-from typing import List, Tuple, Dict, Callable, Set
+from typing import List, Tuple, Dict, Callable
 
 # pylint: disable=import-error
 import Exceptions
@@ -23,11 +23,10 @@ class Parser:
     # Os parâmetros associados as cláusulas SQL, de um comando qualquer.
     __sql_params: List[str]
     # As tabelas usadas no comando SQL.
-    __sql_tables: Dict[str, Set[str]]
+    __sql_tables: Dict[str, List[str]]
     # As colunas usadas no comando SQL.
-    __sql_columns: Dict[str, Set[str]]
+    __sql_columns: Dict[str, List[str]]
     # Expressão regular para extração de palavras reservadas (cláusulas) do MySQL.
-    # __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b|(;$)'
     __sql_token_pattern: str = r'(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b(?!([^()]*\)))|(;$)'
     # Expressão regular para a verificação do posicionamento das cláusulas do MySQL.
     __sql_command_pattern: str = r'^select\sfrom\s(?:join\son\s((and|in|not\sin)\s)*?|where\s((and|in|not\sin)\s)*?)*;$'
@@ -59,15 +58,14 @@ class Parser:
         self.sql_params = self.__extract_params()
         self.__validate_tokens()
         self.__sql_tables = {
-            key: set() 
+            key: list() 
             for key in ["SELECT", "FROM", "JOIN", "ON", "AND_ON", "IN_ON", "NOT IN_ON", "WHERE", "AND_WHERE", "IN_WHERE", "NOT IN_WHERE"]
         }
         self.__sql_columns = {
-            key: set()
+            key: list()
             for key in ["SELECT", "FROM", "JOIN", "ON", "AND_ON", "IN_ON", "NOT IN_ON", "WHERE", "AND_WHERE", "IN_WHERE", "NOT IN_WHERE"]
         }
         self.__validate_params()
-        self.__validate_table_compatibility()
 
     @property
     def sql_command(self) -> str:
@@ -152,53 +150,53 @@ class Parser:
         self.__sql_params = new_sql_params
 
     @property
-    def sql_tables(self) -> Dict[str, Set[str]]:
+    def sql_tables(self) -> Dict[str, List[str]]:
         """Extrai o conteúdo da variável privada sql_tables.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das tabelas utilizadas no comando SQL.
 
         Returns:
-            Dict[str, Set[str]]: O conteúdo da variável privada da classe,
+            Dict[str, List[str]]: O conteúdo da variável privada da classe,
             ou seja, o nome das tabelas.
         """
         return self.__sql_tables
 
     @sql_tables.setter
-    def sql_tables(self, new_sql_tables: Dict[str, Set[str]]) -> None:
+    def sql_tables(self, new_sql_tables: Dict[str, List[str]]) -> None:
         """Altera o conteúdo da variável privada sql_tables.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das tabelas de um comando SQL.
 
         Args:
-            new_sql_tables (Dict[str, Set[str]]): As tabelas utilizadas
+            new_sql_tables (Dict[str, List[str]]): As tabelas utilizadas
             no comando SQL.
         """
         self.sql_tables = new_sql_tables
 
     @property
-    def sql_columns(self) -> Dict[str, Set[str]]:
+    def sql_columns(self) -> Dict[str, List[str]]:
         """Extrai o conteúdo da variável privada sql_columns.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das colunas utilizadas no comando SQL.
 
         Returns:
-            Dict[str, Set[str]]: O conteúdo da variável privada da classe,
+            Dict[str, List[str]]: O conteúdo da variável privada da classe,
             ou seja, o nome das colunas.
         """
         return self.__sql_columns
 
     @sql_columns.setter
-    def sql_columns(self, new_sql_columns: Dict[str, Set[str]]) -> None:
+    def sql_columns(self, new_sql_columns: Dict[str, List[str]]) -> None:
         """Altera o conteúdo da variável privada sql_columns.
 
         Acessa a variável privada da classe, responsável pelo
         armazenamento das colunas de um comando SQL.
 
         Args:
-            new_sql_columns (Dict[str, Set[str]]): As colunas
+            new_sql_columns (Dict[str, List[str]]): As colunas
             utilizadas no comando SQL.
         """
         self.sql_columns = new_sql_columns
@@ -408,10 +406,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables["SELECT"].add(table_name)
-                            self.sql_columns["SELECT"].add(column_name)
+                            if table_name not in self.sql_tables["SELECT"]:
+                                self.sql_tables["SELECT"].append(table_name)
+                            if column_name not in self.sql_columns["SELECT"]:
+                                self.sql_columns["SELECT"].append(column_name)
                         else:
-                            self.sql_columns["SELECT"].add(match[1])
+                            if match[1] not in self.sql_columns["SELECT"]:
+                                self.sql_columns["SELECT"].append(match[1])
                 else:
                     Exceptions.raise_invalid_select_params_exception(self.sql_command)
             else:
@@ -433,7 +434,8 @@ class Parser:
                     param_pattern: str = r'(\w+)'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
-                        self.sql_tables["FROM"].add(match)
+                        if match not in self.sql_tables["FROM"]:
+                            self.sql_tables["FROM"].append(match)
                 else:
                     Exceptions.raise_invalid_from_params_exception(self.sql_command)
             else:
@@ -455,7 +457,8 @@ class Parser:
                     param_pattern: str = r'(\w+)'
                     matches = re.findall(param_pattern, params)
                     for match in matches:
-                        self.sql_tables["JOIN"].add(match)
+                        if match not in self.sql_tables["JOIN"]:
+                            self.sql_tables["JOIN"].append(match)
                 else:
                     Exceptions.raise_invalid_join_params_exception(self.sql_command)
             else:
@@ -479,10 +482,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables["ON"].add(table_name)
-                            self.sql_columns["ON"].add(column_name)
+                            if table_name not in self.sql_tables["ON"]:
+                                self.sql_tables["ON"].append(table_name)
+                            if column_name not in self.sql_columns["ON"]:
+                                self.sql_columns["ON"].append(column_name)
                         else:
-                            self.sql_columns["ON"].add(match[1])
+                            if match[1] not in self.sql_columns["ON"]:
+                                self.sql_columns["ON"].append(match[1])
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
             else:
@@ -506,10 +512,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables["AND_ON"].add(table_name)
-                            self.sql_columns["AND_ON"].add(column_name)
+                            if table_name not in self.sql_tables["AND_ON"]:
+                                self.sql_tables["AND_ON"].append(table_name)
+                            if column_name not in self.sql_columns["AND_ON"]:
+                                self.sql_columns["AND_ON"].append(column_name)
                         else:
-                            self.sql_columns["AND_ON"].add(match[1])
+                            if match[1] not in self.sql_columns["AND_ON"]:
+                                self.sql_columns["AND_ON"].append(match[1])
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
             else:
@@ -573,10 +582,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables["WHERE"].add(table_name)
-                            self.sql_columns["WHERE"].add(column_name)
+                            if table_name not in self.sql_tables["WHERE"]:
+                                self.sql_tables["WHERE"].append(table_name)
+                            if column_name not in self.sql_columns["WHERE"]:
+                                self.sql_columns["WHERE"].append(column_name)
                         else:
-                            self.sql_columns["WHERE"].add(match[1])
+                            if match[1] not in self.sql_columns["WHERE"]:
+                                self.sql_columns["WHERE"].append(match[1])
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
             else:
@@ -600,10 +612,13 @@ class Parser:
                     for match in matches:
                         if match[0]:
                             (table_name, column_name) = match[0].split(".")
-                            self.sql_tables["AND_WHERE"].add(table_name)
-                            self.sql_columns["AND_WHERE"].add(column_name)
+                            if table_name not in self.sql_tables["AND_WHERE"]:
+                                self.sql_tables["AND_WHERE"].append(table_name)
+                            if column_name not in self.sql_columns["AND_WHERE"]:
+                                self.sql_columns["AND_WHERE"].append(column_name)
                         else:
-                            self.sql_columns["AND_WHERE"].add(match[1])
+                            if match[1] not in self.sql_columns["AND_WHERE"]:
+                                self.sql_columns["AND_WHERE"].append(match[1])
                 else:
                     Exceptions.raise_invalid_statement_params_exception(params)
             else:
@@ -669,66 +684,26 @@ class Parser:
             # Chama o método de verificação de parâmetros de um determinada cláusula SQL.
             validator[self.sql_tokens[i][0].upper()](params)
 
-    def __validate_table_compatibility(self) -> None:
-        """Verifica se todas as tabelas usadas no 
-        comando SQL fornecido são compatíveis.
-        
-        Itera sobre as tabelas de cada cláusula registrada,
-        verificando se todas possuem alguma relação com as
-        tabelas do FROM e JOIN.
+    def check_database_compatibility(self, database: Dict[str, List[str]]) -> None:
+        """Verifica se todas as tabelas e colunas usadas no comando SQL 
+        fornecido são compatíveis com o banco de dados exemplar fornecido.
+
+        Args:
+            database (Dict[str, List[str]]): Um dicionário contendo o nome
+            das tabelas (chaves) e uma lista com as colunas da tabela (valor).
+
+        Veja '/source/Examples' para mais detalhes sobre a estrutura de 'database'.
         """
 
-        # Separa as tabelas válidas (aquelas que são adicionadas por cláusulas).
-        valid_tables: Set[str] = self.sql_tables['FROM'].union(self.sql_tables['JOIN'])
-        for clause, tables in self.sql_tables.items():
-            # Ignora as cláusulas do FROM e JOIN (eles adicionam tabelas).
-            if clause not in ["FROM", "JOIN"]:
-                if tables:
-                    if tables.issubset(valid_tables):
-                        continue
-                    else:
-                        Exceptions.raise_table_mismatch_exception(clause)
-        print("[OK!] O comando SQL é válido!")
-
-    def validate_command_in_example_context(self) -> None:
-        """Verifica se todas as tabelas e colunas usadas
-        no comando SQL fornecido são compatíveis com o 
-        banco de dados exemplo fornecido.
-        """
-
-        # O banco de dados exemplo utilizado está em "/examples_db/example_01.png"
-        example: Dict[str, List[str]] = {
-            "usuario": [
-                "idusuario", "nome", "logradouro", "número",
-                "bairro", "cep", "uf", "datanascimento"
-            ],
-            "contas": [
-                "idconta", "descricao", "tipoconta_idtipoconta",
-                "usuario_idusuario", "saldoinicial"
-            ],
-            "movimentacao": [
-                "idmovimentacao", "datamovimentacao", "descricao",
-                "tipomovimento_idtipomovimento", "categoria_idcategoria",
-                "contas_idconta", "valor"
-            ],
-            "tipomovimentacao": [
-                "idtipomovimentacao", "descmovimentacao"
-            ],
-            "categoria": [
-                "idcategoria", "desccategoria"
-            ],
-            "tipoconta": [
-                "idtipoconta", "descrição"
-            ]
-        }
         # Pega o nome das tabelas do exemplo e adiciona em uma lista.
-        tables_in_example: List[str] = list(example.keys())
+        tables_in_database: List[str] = list(database.keys())
         # Pega o nome das colunas do exemplo e adiciona em uma lista.
-        columns_in_example: List[str] = [
+        columns_in_database: List[str] = [
             column 
-            for columns in example.values() 
+            for columns in database.values() 
             for column in columns
         ]
+
         # Itera sobre cada tabela e coluna extraída do comando SQL.
         for clause, tables, columns in zip(self.sql_tables.keys(), self.sql_tables.values(), self.sql_columns.values()):
             # Deixa todos os nomes de tabelas e colunas em minúsculo.
@@ -736,17 +711,19 @@ class Parser:
             columns = set([column.lower() for column in columns])
             # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo. 
             if tables:
-                if tables.issubset(tables_in_example):
+                if tables.issubset(tables_in_database):
                     continue
                 else:
                     Exceptions.raise_table_mismatch_in_example_exception(clause)
             if columns:
                 if "*" not in columns:
-                    if columns.issubset(columns_in_example):
+                    if columns.issubset(columns_in_database):
                         continue
                     else:
                         Exceptions.raise_column_mismatch_in_example_exception(clause)
                 # Ignora o '*', pq é todas as colunas de uma tabela ...
                 else:
                     continue
+
+        print("[OK!] O comando SQL fornecido é válido.")
         print("[OK!] O comando SQL passou na verificação de tabelas e colunas no banco de dados exemplo.")
