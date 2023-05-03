@@ -58,7 +58,7 @@ class Parser:
         self.sql_params = self.__extract_params()
         self.__validate_tokens()
         self.__sql_tables = {
-            key: list() 
+            key: list()
             for key in ["SELECT", "FROM", "JOIN", "ON", "AND_ON", "IN_ON", "NOT IN_ON", "WHERE", "AND_WHERE", "IN_WHERE", "NOT IN_WHERE"]
         }
         self.__sql_columns = {
@@ -699,8 +699,8 @@ class Parser:
         tables_in_database: List[str] = list(database.keys())
         # Pega o nome das colunas do exemplo e adiciona em uma lista.
         columns_in_database: List[str] = [
-            column 
-            for columns in database.values() 
+            column
+            for columns in database.values()
             for column in columns
         ]
 
@@ -709,7 +709,7 @@ class Parser:
             # Deixa todos os nomes de tabelas e colunas em minúsculo.
             tables = set([table.lower() for table in tables])
             columns = set([column.lower() for column in columns])
-            # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo. 
+            # Verifica se as tabelas e/ou colunas estão no contexto do banco de dados exemplo.
             if tables:
                 if tables.issubset(tables_in_database):
                     continue

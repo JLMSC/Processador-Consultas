@@ -369,7 +369,7 @@ class Converter:
                 # As informações da tabela.
                 table_projection: str = self.command_info[table]['projection'].strip().replace(" ", ", ")
                 table_restriction: str = self.command_info[table]['restriction'].replace('AND', '', 1).strip()
-                
+
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
                 if bool(table_projection):
@@ -383,7 +383,7 @@ class Converter:
                     children = Node(value=f"σ {table_restriction}", parent=root_cp)
                     root_cp.left_children = children
                     root_cp = root_cp.left_children
-                
+
                 # Adiciona o nome da tabela como filho direito do nó pai.
                 children = Node(value=table, parent=root_cp)
                 root_cp.left_children = children
@@ -406,7 +406,7 @@ class Converter:
                 # As informações da tabela.
                 table_projection: str = self.command_info[table]['projection'].strip().replace(" ", ", ")
                 table_restriction: str = self.command_info[table]['restriction'].replace('AND', '', 1).strip()
-                
+
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
                 if bool(table_projection):
@@ -420,11 +420,11 @@ class Converter:
                     children = Node(value=f"σ {table_restriction}", parent=root_cp)
                     root_cp.right_children = children
                     root_cp = root_cp.right_children
-                
+
                 # Adiciona o nome da tabela como filho direito do nó pai.
                 children = Node(value=table, parent=root_cp)
                 root_cp.right_children = children
-            
+
             # Cria um nó raiz com base no 'SELECT', se não for "*", caso contrário cria um nó vazio.
             root: Node = Node(value=select2ra) if select2ra != "*" else Node()
 
@@ -452,7 +452,7 @@ class Converter:
                         root_cp.left_children = children
                         root_cp = root_cp.left_children
                         add_info_to_right_children(root_cp, right_table)
-                
+
                 # Adiciona as informações da primeira tabela.
                 add_info_to_left_children(root_cp, sql_context_tables[0])
             # Somente uma tabela, informações de tabela são adicionadas sempre na DIREITA.
@@ -461,7 +461,7 @@ class Converter:
 
             return root
 
-        # Cria um dicionário para a Álgebra Relacional do comando SQL, 
+        # Cria um dicionário para a Álgebra Relacional do comando SQL,
         # incluindo informações já otimizadas conforme descrito previamente.
         sql_context_tables: List[str] = self.parser.sql_tables["FROM"] + self.parser.sql_tables["JOIN"]
         for table in sql_context_tables:
