@@ -3,12 +3,39 @@ SQL para sua expressão em Álgebra Relacional já otimizada."""
 
 import re
 from functools import reduce
-from typing import Dict, List
 from collections import OrderedDict
+from typing import Dict, List, Union
 
 # pylint: disable=import-error
 import Exceptions
 from Parser.parser import Parser
+
+class Node:
+    """Representa uma nó de uma árvore."""
+
+    value: Union[str, None] = None
+    parent: Union['Node', None] = None
+    left_children: Union['Node', None] = None
+    right_children: Union['Node', None] = None
+
+    def __init__(
+            self,
+            value: Union[str, None] = None,
+            parent: Union['Node', None] = None,
+            left_children: Union['Node', None] = None,
+            right_children: Union['Node', None] = None) -> None:
+        """Construtor da classe.
+
+        Args:
+            value (str | None, optional): O valor do nó. Defaults to None.
+            parent (Node | None, optional): O nó pai desse nó. Defaults to None.
+            left_children (Node | None, optional): O nó filho (esquerdo) deste nó. Defaults to None.
+            right_children (Node | None, optional): O nó filho (direito) deste nó. Defaults to None.
+        """
+        self.value = value
+        self.parent = parent
+        self.left_children = left_children
+        self.right_children = right_children
 
 class Converter:
     """Classe responsável pela conversão de um comando SQL
@@ -26,6 +53,8 @@ class Converter:
     __relational_algebra: str
     # Informações sobre as tabelas e colunas do comando SQL.
     __command_info: Dict[str, Dict[str, str]]
+    # A Árvore da Álgebra Relacional.
+    __relational_algebra_tree: Node
 
     @property
     def parser(self) -> Parser:
@@ -110,6 +139,31 @@ class Converter:
             novas informações para a variável.
         """
         self.__command_info = new_info
+
+    @property
+    def relational_algebra_tree(self) -> Node:
+        """Extrai o conteúdo da variável privada 'relational_algebra_tree'.
+
+        Acessa a variável privada da classe, responsável pelo armazenamento
+        dos nós de uma árvore relacionada à Álgebra Relacional do comando SQL.
+
+        Returns:
+            Node: A Árvore da Álgebra Relacional.
+        """
+        return self.__relational_algebra_tree
+
+    @relational_algebra_tree.setter
+    def relational_algebra_tree(self, new_tree: Node) -> None:
+        """Altera o conteúdo da variável privada 'relational_algebra_tree'.
+
+        Acessa a variável privada da classe, responsável pelo armazenamento
+        dos nós de uma árvore relacionada à Álgebra Relacional do comando SQL,
+        alterando o seu conteúdo.
+
+        Returns:
+            Node: A Árvore da Álgebra Relacional.
+        """
+        self.__relational_algebra_tree = new_tree
 
     def __init__(self, parser: Parser | type) -> None:
         """Construtor da classe.
@@ -285,6 +339,128 @@ class Converter:
 
             return relational_algebra
 
+        def setup_tree() -> Node:
+            """Cria uma árvore com base nas informações de 'command_info'.
+
+            As seguintes restrições estão atribuídas à árvore:
+            1. JUNÇÕES ficam SEMPRE em nós filhos à esquerda. (caso tenha junção)
+            2. INFORMAÇÕES DE ALGUMA TABELA ficam SEMPRE em nós filhos à direita. (caso a esquerda tenha junção)
+            3. A SELEÇÃO será SEMPRE o nó raiz, mesmo que tenha '*' como parâmetro.
+
+            Returns:
+                Node: O nó raiz da árvore criada.
+            """
+
+            def add_info_to_left_children(root: Node, table: str) -> None:
+                """Adiciona informações da Álgebra Relacional de uma tabela
+                à esquerda do nó pai.
+
+                As informações são: 'projection' e 'restriction' (de 'command_info'),
+                caso uma dessas informações esteja vazia, o algoritmo ignora-o.
+
+                Args:
+                    root (Node): O nó atual.
+                    table (str): O nome da tabela a ser coletado as informações.
+                """
+                # Variável auxiliar, representa um nó prestes a ser criado.
+                children: Node
+                # Uma cópia do nó pai.
+                root_cp: Node = root
+                # As informações da tabela.
+                table_projection: str = self.command_info[table]['projection'].strip().replace(" ", ", ")
+                table_restriction: str = self.command_info[table]['restriction'].replace('AND', '', 1).strip()
+                
+                # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
+                # contendo as informações de 'projection'.
+                if bool(table_projection):
+                    children = Node(value=f"π {table_projection}", parent=root_cp)
+                    root_cp.left_children = children
+                    root_cp = root_cp.left_children
+
+                # Se tiver 'restriction' (WHERE), um nó é adicionado antes ao nó pai,
+                # contendo as informações de 'restriction'.
+                if bool(table_restriction):
+                    children = Node(value=f"σ {table_restriction}", parent=root_cp)
+                    root_cp.left_children = children
+                    root_cp = root_cp.left_children
+                
+                # Adiciona o nome da tabela como filho direito do nó pai.
+                children = Node(value=table, parent=root_cp)
+                root_cp.left_children = children
+
+            def add_info_to_right_children(root: Node, table: str) -> None:
+                """Adiciona informações da Álgebra Relacional de uma tabela
+                à direita do nó pai.
+
+                As informações são: 'projection' e 'restriction' (de 'command_info'),
+                caso uma dessas informações esteja vazia, o algoritmo ignora-o.
+
+                Args:
+                    root (Node): O nó atual.
+                    table (str): O nome da tabela a ser coletado as informações.
+                """
+                # Variável auxiliar, representa um nó prestes a ser criado.
+                children: Node
+                # Uma cópia do nó pai.
+                root_cp: Node = root
+                # As informações da tabela.
+                table_projection: str = self.command_info[table]['projection'].strip().replace(" ", ", ")
+                table_restriction: str = self.command_info[table]['restriction'].replace('AND', '', 1).strip()
+                
+                # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
+                # contendo as informações de 'projection'.
+                if bool(table_projection):
+                    children = Node(value=f"π {table_projection}", parent=root_cp)
+                    root_cp.right_children = children
+                    root_cp = root_cp.right_children
+
+                # Se tiver 'restriction' (WHERE), um nó é adicionado antes ao nó pai,
+                # contendo as informações de 'restriction'.
+                if bool(table_restriction):
+                    children = Node(value=f"σ {table_restriction}", parent=root_cp)
+                    root_cp.right_children = children
+                    root_cp = root_cp.right_children
+                
+                # Adiciona o nome da tabela como filho direito do nó pai.
+                children = Node(value=table, parent=root_cp)
+                root_cp.right_children = children
+            
+            # Cria um nó raiz com base no 'SELECT', se não for "*", caso contrário cria um nó vazio.
+            root: Node = Node(value=select2ra) if select2ra != "*" else Node()
+
+            # Indica duas ou mais tabelas, é provável que tenha JUNÇÃO, pois o FROM só pode ter 1 tabela.
+            if len(self.command_info) >= 2:
+                # Variável auxiliar, representa um nó prestes a ser criado.
+                children: Node
+                # Uma cópia do nó pai.
+                root_cp: Node = root
+
+                # 'left_table' -> Adicionará somente a junção.
+                # 'right_table' -> Adicionará as informações da tabela.
+                left_table: str
+                right_table: str
+                # A JUNÇÃO contida em 'left_table'.
+                left_table_junction: str
+                for i in range(-2, -(len(sql_context_tables) + 1), -1):
+                    left_table: str = sql_context_tables[i]
+                    right_table = sql_context_tables[i + 1]
+                    left_table_junction = self.command_info[left_table]['junction'].strip()
+
+                    # Adiciona a JUNÇÃO ao nó pai.
+                    if bool(left_table_junction):
+                        children = Node(value=f"|x| {left_table_junction}", parent=root_cp)
+                        root_cp.left_children = children
+                        root_cp = root_cp.left_children
+                        add_info_to_right_children(root_cp, right_table)
+                
+                # Adiciona as informações da primeira tabela.
+                add_info_to_left_children(root_cp, sql_context_tables[0])
+            # Somente uma tabela, informações de tabela são adicionadas sempre na DIREITA.
+            else:
+                add_info_to_right_children(root, sql_context_tables[0])
+
+            return root
+
         # Cria um dicionário para a Álgebra Relacional do comando SQL, 
         # incluindo informações já otimizadas conforme descrito previamente.
         sql_context_tables: List[str] = self.parser.sql_tables["FROM"] + self.parser.sql_tables["JOIN"]
@@ -311,6 +487,9 @@ class Converter:
         select2ra: str = f"π {select_params}" if select_params != '*' else ""
         self.relational_algebra = f"{select2ra} {mount_ra()}".strip()
 
-        # TODO: Montar uma árvore com base em 'self.command_info'
+        print("[OK!] Criado uma Álgebra Relacional otimizada para o comando SQL fornecido.")
+
+        # Monta a árvore da Álgebra Relaciona.
+        self.relational_algebra_tree = setup_tree()
 
         return self.relational_algebra
