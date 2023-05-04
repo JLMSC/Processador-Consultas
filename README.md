@@ -19,12 +19,15 @@ Implementação de um **Processador de Consultas** em **Python 3**.
     8. [**Validando os parâmetros do AND**](#validação-dos-parâmetros-do-and)
     9. [**Validando os parâmetros do IN**](#validação-dos-parâmetros-do-in)
     10. [**Validando os parâmetros do NOT IN**](#validação-dos-parâmetros-do-not-in)
-2. [**Exemplos Disponíveis para testes**](#exemplares-de-banco-de-dados-disponíveis)
+2. [**Álgebra Relacional**](#álgebra-relacional)
+3. [**Assets Utilizados**](#assets-utilizados)
+4. [**Exemplos Disponíveis para testes**](#exemplares-de-banco-de-dados-disponíveis)
 
 
 ##### O Parser está **LIMITADO** para *"Select", "From", "Where", "Join On"* e, também, para os operadores *"=", ">", "<", "<=", ">=", "<>", "And", "In", "Not In", "(", ")"*.
 
 ## **As maravilhosas Expresões Regulares utilizadas.**
+> Todas as verificações e validações (feitas no arquivo ***`Parser.py`***) são feitas em cima de exemplos de ***`/source/Examples/`***.
 #### **Detecção das cláusulas SQL**
 `(?<!\()\b(select|from|join|on|where|and|in|not\s+in)\b(?!([^()]*\)))|(;$)`
 * `(?<!\()` - Verifica se algum grupo não possui um **(** no começo. 
@@ -102,6 +105,21 @@ Implementação de um **Processador de Consultas** em **Python 3**.
 
 #### **Validação dos parâmetros do NOT IN**
 > Mesma expressão regular utilizada para **validação dos parâmetros do IN**.
+
+## **Álgebra Relacional**
+A conversão de um comando SQL é feita, somente, em cima de exemplos
+de ***`/source/Examples/`***, durante a conversão, duas heurísticas são aplicadas:
+1. Aplicar primeiro as operações que reduzem o tamanho dos resultados intermediários.
+    1. Operações de seleção; 
+    2. Operações de projeção.
+2. Aplicar primeiro as operações de seleção e de junção mais restritivas.
+    1. Reordenar os nós folha da árvore de consulta; 
+    2. Evitar a operação de produto cartesiano; 
+    3. Ajustar o restante da árvore de forma apropriada.
+> O arquivo ***`Converter.py`*** é responsável pela conversão de um comando SQL para Álgebra Relacional.
+
+## **Assets Utilizados**
+Ícone da aplicação :. https://www.flaticon.com/authors/smashicons
 
 ## **Exemplares de Banco de Dados disponíveis**
 > Os bancos de dados exemplares, disponíveis para testes e/ou uso estão presentes em ***`/source/Examples/`***
