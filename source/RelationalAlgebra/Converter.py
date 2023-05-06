@@ -430,7 +430,7 @@ class Converter:
 
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
-                if bool(table_projection):
+                if bool(table_projection) and f"π {table_projection}" != select2ra:
                     children = Node(value=f"π {table_projection}", parent=root_cp, execution_order=self.node_count)
                     root_cp.left_children = children
                     root_cp = root_cp.left_children
@@ -470,7 +470,7 @@ class Converter:
 
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
-                if bool(table_projection):
+                if bool(table_projection) and f"π {table_projection}" != select2ra:
                     children = Node(value=f"π {table_projection}", parent=root_cp, execution_order=self.node_count)
                     root_cp.right_children = children
                     root_cp = root_cp.right_children
