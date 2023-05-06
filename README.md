@@ -1,6 +1,9 @@
 # **Processador-Consultas**
 Implementação de um **Processador de Consultas** em **Python 3**.
 
+![Resultado da aplicação](source/images/example_result.png)
+> Imagem da aplicação, mostrando a árvore da álgebra relaciona do seguinte comando: ***select nome, saldoinicial from usuario join contas on usuario.idusuario = contas.usuario_idusuario;***
+
 ### **Funcionalidades principais**
 1. Parser (Análise) de uma consulta SQL;
 2. Geração do grafo de operadores da consulta;
