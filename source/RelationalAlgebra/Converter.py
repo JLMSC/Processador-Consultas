@@ -321,6 +321,12 @@ class Converter:
                                         self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params} "
                                     else:
                                         self.command_info[target_table]['restriction'] += f"{params} "
+                    else:
+                        if column_name != "*":
+                            target_table: str = search_table_in_database(column_name)
+                            # Ignora duplicatas.
+                            if token in ("IN_WHERE", "NOT IN_WHERE"):
+                                self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params}"
 
         def search_table_in_database(target_column: str) -> str:
             """Procura pelo nome da tabela correspondente de uma coluna.
