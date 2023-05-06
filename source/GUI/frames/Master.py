@@ -7,6 +7,7 @@ from tkinter.ttk import Frame
 # pylint: disable=no-name-in-module
 from GUI.frames.Body import Body
 from GUI.frames.Header import Header
+from GUI.frames.Footer import Footer
 
 class Master(Frame):
     """Representa o contêiner principal para uma aplicação.
@@ -19,6 +20,7 @@ class Master(Frame):
     # Os demais contêineres da aplicação.
     header: Header
     body: Body
+    footer: Footer
 
     def __init__(self, master: Tk = None) -> None:
         """Inicializa o contêiner principal em uma aplicação.
@@ -77,10 +79,17 @@ class Master(Frame):
 
         # Inicializa o corpo.
         self.body = Body(self)
-        # Desenha o cabeçalho no contêiner principal.
+        # Desenha o corpo no contêiner principal.
         self.body.frame_grid(column=0, row=1, padx=padx, pady=pady)
         # Configura o grid do corpo dentro do contêiner principal.
         self.body.configure_column(column_id=0, weight=0)
         self.body.configure_column(column_id=1, weight=1)
         # Renderiza os elementos contidos no corpo.
         self.body.draw_body(padx=padx, pady=pady)
+
+        # Inicializa o rodapé.
+        self.footer = Footer(self)
+        # Desenha o rodapé no contêiner principal.
+        self.footer.frame_grid(column=0, row=2, padx=padx, pady=pady)
+        # Renderiza os elementos contidos no rodapé.
+        self.footer.draw_body(padx=padx, pady=pady)

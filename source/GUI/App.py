@@ -63,6 +63,8 @@ class Application(Tk):
         # Configura o grid do contêiner principal dentro da aplicação.
         self.master_container.configure_column(column_id=0, weight=1)
         self.master_container.configure_row(row_id=0, weight=1)
+        self.master_container.configure_row(row_id=1, weight=0)
+        self.master_container.configure_row(row_id=2, weight=0)
 
         # Renderiza os demais contêineres da aplicação no contêiner principal.
         self.master_container.draw_body(padx=0.01 * self.width, pady=0.01 * self.height)
