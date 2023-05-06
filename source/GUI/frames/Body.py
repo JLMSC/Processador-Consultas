@@ -1,8 +1,16 @@
 """Representa o corpo de uma aplicação"""
 
-from tkinter import Button
 from tkinter.font import Font
+from tkinter import Button, END
 from tkinter.ttk import Frame, Label, Entry
+
+# pylint: disable=import-error
+# pylint: disable=no-name-in-module
+import Examples
+
+from Parser.parser import Parser
+from GUI.frames.TreeCanvas import TreeCanvas
+from RelationalAlgebra.Converter import Node, Converter
 
 class Body(Frame):
     """Representa um corpo para uma aplicação.
@@ -15,7 +23,12 @@ class Body(Frame):
     body_text_font: Font
     body_entry_font: Font
     body_button_font: Font
-    body_output_font: Font
+    # O parser.
+    parser: Parser
+    # O conversor.
+    converter: Converter
+    # O entry.
+    body_entry: Entry
 
     def __init__(self, master: Frame = None) -> None:
         """Inicializa o corpo em um contêiner.
@@ -35,7 +48,6 @@ class Body(Frame):
         self.body_text_font = Font(family="Callibri", size=12, weight="bold")
         self.body_entry_font = Font(family="Callibri", size=12, weight="normal")
         self.body_button_font = Font(family="Callibri", size=12, weight="bold")
-        self.body_output_font = Font(family="Callibri", size=12, weight="normal")
 
     def frame_grid(self, column: int, row: int, padx: int, pady: int) -> None:
         """Configura o corpo.
@@ -63,6 +75,76 @@ class Body(Frame):
         """
         self.grid_rowconfigure(row_id, weight=weight)
 
+    def __draw_tree(self) -> None:
+        """Limpa o Canvas do cabeçalho e desenha 
+        a Árvore da Álgebra Relacional.
+        """
+
+        def dfs_drawing(canvas: TreeCanvas, node: Node, x: int, y: int, dx: int = 50, dy: int = 50) -> None:
+            """Desenha uma Árvore para a Álgebra Relacional usando DFS.
+
+            Args:
+                canvas (TreeCanvas): O canvas onde será desenhado.
+                node (Node): O nó inicial.
+                x (int): A posição horizontal do nó inicial.
+                y (int): A posição vertical do nó inicial.
+                dx (int, optional): A margem de deslocamento na 
+                horizontal dos nós filhos. Valor padrão: 50.
+                dy (int, optional): A margem de deslocamento na
+                vertical dos nós filhos. Valor padrão: 50.
+            """
+            if node:
+                # Desenha o círculo do Nó.
+                canvas.create_oval(
+                    x - 10, y - 10,
+                    x + 10, y + 10,
+                    fill="white", outline="black"
+                )
+                # Adiciona um texto acima do Nó.
+                canvas.create_text(
+                    x, y - 20,
+                    text=f"{node.execution_order}°- {node.value}",
+                    font=node_text_font
+                )
+
+                # Desenha o Nó filho esquerdo, se houver.
+                if node.left_children:
+                    node_text = f"{node.execution_order}°- {node.value}"
+                    node_text_width = node_text_font.measure(node_text)
+                    # Cria uma aresta entre os dois Nós.
+                    dx = node_text_width / 2
+                    canvas.create_line(x, y + 10, x - dx, y + dy - 10, fill="gray")
+                    dfs_drawing(canvas, node.left_children, x - dx, y + dy, dx // 2, dy)
+
+                # Desenha o Nó filho direito, se houver.
+                if node.right_children:
+                    node_text = f"{node.right_children.execution_order}°- {node.right_children.value}"
+                    node_text_width = node_text_font.measure(node_text)
+                    # Cria uma aresta entre os dois Nós.
+                    dx = node_text_width / 2
+                    canvas.create_line(x, y + 10, x + dx, y + dy + 10, fill="gray")
+                    dfs_drawing(canvas, node.right_children, x + dx, y + dy + 20, dx // 2, dy)
+
+        # Captura o Canvas do cabeçalho.
+        target_canvas: TreeCanvas = self.master_container.header.canvas
+        # Pega o texto do entry e passa para o parser, verificando se o
+        # comando é válido.
+        self.parser = Parser(self.body_entry.get())
+        self.parser.check_database_compatibility(Examples.pagamento_example_db)
+        # Inicializa o conversor passando o texto de 'Label' para um Parser.
+        self.converter = Converter(self.parser)
+        # Converte o comando SQL para Álgebra Relacional.
+        self.converter.convert_in_database_context(Examples.pagamento_example_db)
+        # TODO: Mostrar as Exceptions em um footer (em vermelho).
+        # Limpa o Entry.
+        self.body_entry.delete(0, END)
+        # Limpa o Canvas do cabeçalho.
+        target_canvas.delete("all")
+        # Desenha a Árvore.
+        node_text_font = Font(family="Callibri", size=12, weight="bold")
+        dfs_drawing(target_canvas, self.converter.relational_algebra_tree, 400, 50)
+
+
     def draw_body(self, padx: int, pady: int) -> None:
         """Renderiza elementos ao corpo.
         Args:
@@ -73,10 +155,9 @@ class Body(Frame):
         Label(self, text="Comando SQL", font=self.body_text_font)\
             .grid(padx=padx, pady=pady, column=1, row=0, sticky="N")
         # Campo de entrada para o comando SQL.
-        Entry(self, font=self.body_entry_font)\
-            .grid(padx=padx, pady=pady, column=1, row=1, sticky="NSWE")
+        self.body_entry = Entry(self, font=self.body_entry_font)
+        self.body_entry.grid(padx=padx, pady=pady, column=1, row=1, sticky="NSWE")
         # Botão para converter o comando SQL para Álgebra Relacional.
-        # TODO: Comando do botão (body)
         Button(self, text="Converter comando SQL para Álgebra Relacional", font=self.body_button_font,
-               command=None)\
+               command=self.__draw_tree)\
             .grid(padx=padx, pady=pady, column=1, row=2, sticky="N")
