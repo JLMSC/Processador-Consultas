@@ -17,25 +17,29 @@ class Node:
     parent: Union['Node', None] = None
     left_children: Union['Node', None] = None
     right_children: Union['Node', None] = None
+    execution_order: Union[int, None] = None
 
     def __init__(
             self,
             value: Union[str, None] = None,
             parent: Union['Node', None] = None,
             left_children: Union['Node', None] = None,
-            right_children: Union['Node', None] = None) -> None:
+            right_children: Union['Node', None] = None,
+            execution_order: Union[int, None] = None) -> None:
         """Construtor da classe.
 
         Args:
-            value (str | None, optional): O valor do nó. Defaults to None.
-            parent (Node | None, optional): O nó pai desse nó. Defaults to None.
-            left_children (Node | None, optional): O nó filho (esquerdo) deste nó. Defaults to None.
-            right_children (Node | None, optional): O nó filho (direito) deste nó. Defaults to None.
+            value (str | None, optional): O valor do nó. Valor padrão: None.
+            parent (Node | None, optional): O nó pai desse nó. Valor padrão: None.
+            left_children (Node | None, optional): O nó filho (esquerdo) deste nó. Valor padrão: None.
+            right_children (Node | None, optional): O nó filho (direito) deste nó. Valor padrão: None.
+            execution_order (int | None, optional): A ordem de execução do nó. Valor padrão: None.
         """
         self.value = value
         self.parent = parent
         self.left_children = left_children
         self.right_children = right_children
+        self.execution_order = execution_order
 
 class Converter:
     """Classe responsável pela conversão de um comando SQL
@@ -55,6 +59,10 @@ class Converter:
     __command_info: Dict[str, Dict[str, str]]
     # A Árvore da Álgebra Relacional.
     __relational_algebra_tree: Node
+    # A contagem de nós.
+    __node_count: int
+    # A ordem de execução dos nós.
+    __node_execution_order: List[Node]
 
     @property
     def parser(self) -> Parser:
@@ -165,6 +173,56 @@ class Converter:
         """
         self.__relational_algebra_tree = new_tree
 
+    @property
+    def node_count(self) -> int:
+        """Extrai o conteúdo da variável privada 'node_count'.
+
+        Acessa a variável privada da classe, responsável pela
+        contagem da quantidade de nós relacionados à Álgebra Relacional.
+
+        Returns:
+            int: A qntd. de nós.
+        """
+        return self.__node_count
+
+    @node_count.setter
+    def node_count(self, new_count: int) -> None:
+        """Altera o conteúdo da variável privada 'node_count'.
+
+        Acessa a variável privada da classe, responsável pela
+        contagem da quantidade de nós relacionados à Álgebra Relacional,
+        alterando o seu conteúdo.
+
+        Args:
+            new_count (int): A nova qntd. de nós.
+        """
+        self.__node_count = new_count
+
+    @property
+    def node_execution_order(self) -> List[Node]:
+        """Extrai o conteúdo da variável privada 'node_execution_order'.
+
+        Acessa a variável privada da classe, responsável pela indicação
+        da ordem de execução dos nós da Álgebra Relacional.
+
+        Returns:
+            List[Node]: A ordem de exceução dos nós.
+        """
+        return self.__node_execution_order
+
+    @node_execution_order.setter
+    def node_execution_order(self, new_order: List[Node]) -> None:
+        """Altera o conteúdo da variável privada 'node_execution_order'.
+
+        Acessa a variável privada da classe, responsável pela indicação
+        da ordem de execuçõ dos nós da Álgebra Relacional, alterando o
+        seu conteúdo.
+
+        Args:
+            new_order (List[Node]): A nova ordem de execução.
+        """
+        self.__node_execution_order = new_order
+
     def __init__(self, parser: Parser | type) -> None:
         """Construtor da classe.
 
@@ -263,6 +321,12 @@ class Converter:
                                         self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params} "
                                     else:
                                         self.command_info[target_table]['restriction'] += f"{params} "
+                    else:
+                        if column_name != "*":
+                            target_table: str = search_table_in_database(column_name)
+                            # Ignora duplicatas.
+                            if token in ("IN_WHERE", "NOT IN_WHERE"):
+                                self.command_info[target_table]['restriction'] += f"{token.replace('_WHERE', '', 1)} {params}"
 
         def search_table_in_database(target_column: str) -> str:
             """Procura pelo nome da tabela correspondente de uma coluna.
@@ -372,21 +436,24 @@ class Converter:
 
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
-                if bool(table_projection):
-                    children = Node(value=f"π {table_projection}", parent=root_cp)
+                if bool(table_projection) and f"π {table_projection}" != select2ra:
+                    children = Node(value=f"π {table_projection}", parent=root_cp, execution_order=self.node_count)
                     root_cp.left_children = children
                     root_cp = root_cp.left_children
+                    self.node_count += 1
 
                 # Se tiver 'restriction' (WHERE), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'restriction'.
                 if bool(table_restriction):
-                    children = Node(value=f"σ {table_restriction}", parent=root_cp)
+                    children = Node(value=f"σ {table_restriction}", parent=root_cp, execution_order=self.node_count)
                     root_cp.left_children = children
                     root_cp = root_cp.left_children
+                    self.node_count += 1
 
                 # Adiciona o nome da tabela como filho direito do nó pai.
-                children = Node(value=table, parent=root_cp)
+                children = Node(value=table, parent=root_cp, execution_order=self.node_count)
                 root_cp.left_children = children
+                self.node_count += 1
 
             def add_info_to_right_children(root: Node, table: str) -> None:
                 """Adiciona informações da Álgebra Relacional de uma tabela
@@ -409,24 +476,29 @@ class Converter:
 
                 # Se tiver 'projection' (SELECT), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'projection'.
-                if bool(table_projection):
-                    children = Node(value=f"π {table_projection}", parent=root_cp)
+                if bool(table_projection) and f"π {table_projection}" != select2ra:
+                    children = Node(value=f"π {table_projection}", parent=root_cp, execution_order=self.node_count)
                     root_cp.right_children = children
                     root_cp = root_cp.right_children
+                    self.node_count += 1
 
                 # Se tiver 'restriction' (WHERE), um nó é adicionado antes ao nó pai,
                 # contendo as informações de 'restriction'.
                 if bool(table_restriction):
-                    children = Node(value=f"σ {table_restriction}", parent=root_cp)
+                    children = Node(value=f"σ {table_restriction}", parent=root_cp, execution_order=self.node_count)
                     root_cp.right_children = children
                     root_cp = root_cp.right_children
+                    self.node_count += 1
 
                 # Adiciona o nome da tabela como filho direito do nó pai.
-                children = Node(value=table, parent=root_cp)
+                children = Node(value=table, parent=root_cp, execution_order=self.node_count)
                 root_cp.right_children = children
+                self.node_count += 1
 
             # Cria um nó raiz com base no 'SELECT', se não for "*", caso contrário cria um nó vazio.
-            root: Node = Node(value=select2ra) if select2ra != "*" else Node()
+            self.node_count = 0
+            root: Node = Node(value=select2ra, execution_order=self.node_count) if select2ra != "*" else Node(execution_order=-1)
+            self.node_count += 1
 
             # Indica duas ou mais tabelas, é provável que tenha JUNÇÃO, pois o FROM só pode ter 1 tabela.
             if len(self.command_info) >= 2:
@@ -448,9 +520,10 @@ class Converter:
 
                     # Adiciona a JUNÇÃO ao nó pai.
                     if bool(left_table_junction):
-                        children = Node(value=f"|x| {left_table_junction}", parent=root_cp)
+                        children = Node(value=f"|x| {left_table_junction}", parent=root_cp, execution_order=self.node_count)
                         root_cp.left_children = children
                         root_cp = root_cp.left_children
+                        self.node_count += 1
                         add_info_to_right_children(root_cp, right_table)
 
                 # Adiciona as informações da primeira tabela.
@@ -460,6 +533,30 @@ class Converter:
                 add_info_to_right_children(root, sql_context_tables[0])
 
             return root
+
+        def configure_execution_order(node: Node) -> None:
+            """Realiza um DFS na árvore da Álgebra Relacional.
+
+            Itera sobre cada nó, DFS, invertendo a ordem de
+            execução de cada um.
+
+            Args:
+                node (Node): O nó inicial, o ponto de partida.
+            """
+            if node:
+                # Checa se o nó ainda não foi visitado.
+                if node not in self.node_execution_order:
+                    # Altera a ordem de execução.
+                    node.execution_order = self.node_count - node.execution_order
+                    self.node_execution_order.append(node)
+
+                # Visita o filho da esquerda, se houver.
+                if node.left_children:
+                    configure_execution_order(node.left_children)
+
+                # Visita o filho da direita, se houver.
+                if node.right_children:
+                    configure_execution_order(node.right_children)
 
         # Cria um dicionário para a Álgebra Relacional do comando SQL,
         # incluindo informações já otimizadas conforme descrito previamente.
@@ -491,5 +588,9 @@ class Converter:
 
         # Monta a árvore da Álgebra Relaciona.
         self.relational_algebra_tree = setup_tree()
+
+        # Inverte a ordem de execução da Álgebra Relacional.
+        self.node_execution_order = []
+        configure_execution_order(self.relational_algebra_tree)
 
         return self.relational_algebra
